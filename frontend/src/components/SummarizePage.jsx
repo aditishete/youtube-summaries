@@ -45,26 +45,74 @@ function downloadPdf(history) {
   doc.setTextColor(24, 24, 27);
   doc.text('Video Summary History', margin, margin + 10);
 
-  const rows = history.map((item) => {
+  // Store per-row data for custom cell rendering
+  const rowData = history.map((item) => {
     const kp = Array.isArray(item.keyPoints) ? item.keyPoints : [];
-    return [
-      pdfSafe(item.title || ''),
-      [item.url || '', formatDate(item.created_at)].filter(Boolean).join('\n'),
-      pdfSafe(item.summary || '') + (kp.length ? '\n\nKey Points:\n' + kp.map((p, i) => `${i + 1}. ${pdfSafe(p)}`).join('\n') : ''),
-    ];
+    return {
+      title: pdfSafe(item.title || ''),
+      url: item.url || '',
+      date: formatDate(item.created_at),
+      summary: pdfSafe(item.summary || ''),
+      keyPoints: kp.map((p) => pdfSafe(p)),
+    };
   });
+
+  const rows = rowData.map((r) => [
+    r.title,
+    '',  // rendered manually via didDrawCell
+    r.summary + (r.keyPoints.length ? '\n\nKey Points:\n' + r.keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n') : ''),
+  ]);
+
+  const PAD = 5;
+  const LH = 10;
 
   autoTable(doc, {
     startY: margin + 24,
     margin: { left: margin, right: margin },
-    head: [['Thumbnail / Title', 'URL & Date', 'Summary']],
+    head: [['Title', 'URL & Date', 'Summary']],
     body: rows,
-    styles: { font: 'helvetica', fontSize: 8, cellPadding: 5, overflow: 'linebreak', valign: 'top', textColor: [39, 39, 42] },
+    styles: { font: 'helvetica', fontSize: 8, cellPadding: PAD, overflow: 'linebreak', valign: 'top', textColor: [39, 39, 42] },
     headStyles: { fillColor: [39, 39, 42], textColor: [244, 244, 245], fontStyle: 'bold', fontSize: 8 },
     columnStyles: {
       0: { cellWidth: (pageW - margin * 2) * 0.30 },
       1: { cellWidth: (pageW - margin * 2) * 0.30 },
       2: { cellWidth: (pageW - margin * 2) * 0.40 },
+    },
+    willDrawCell(data) {
+      // Clear the placeholder text in the URL column so we can draw manually
+      if (data.section === 'body' && data.column.index === 1) {
+        data.cell.text = [];
+      }
+    },
+    didDrawCell(data) {
+      if (data.section !== 'body' || data.column.index !== 1) return;
+      const r = rowData[data.row.index];
+      if (!r) return;
+      const x = data.cell.x;
+      const y = data.cell.y;
+      let cy = y + PAD + LH;
+
+      // Clickable URL in blue
+      if (r.url) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(59, 130, 246);
+        const maxW = data.cell.width - PAD * 2;
+        const urlLines = doc.splitTextToSize(r.url, maxW);
+        urlLines.forEach((line) => {
+          doc.textWithLink(line, x + PAD, cy, { url: r.url });
+          cy += LH;
+        });
+      }
+
+      // Date in grey below the URL
+      if (r.date) {
+        cy += 3;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(113, 113, 122);
+        doc.text(r.date, x + PAD, cy);
+      }
     },
     didDrawPage(data) {
       const n = doc.internal.getNumberOfPages();
