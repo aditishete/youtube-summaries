@@ -232,6 +232,7 @@ export default function App() {
             selectedChannelId={selectedChannelId}
             channels={channels}
             onBack={() => setAppPage('landing')}
+            onLogout={handleLogout}
           />
         )}
       </main>

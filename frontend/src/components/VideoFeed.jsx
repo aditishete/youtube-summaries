@@ -219,7 +219,7 @@ function downloadPdf(videos, title) {
     },
   });
 
-  doc.save(`${title.replace(/\s+/g, '_')}_investment_report.pdf`);
+  doc.save(`${title.replace(/\s+/g, '_')}_market_feed.pdf`);
 }
 
 function SkeletonCard() {
@@ -242,7 +242,7 @@ function SkeletonCard() {
   );
 }
 
-export default function VideoFeed({ videos, loading, selectedChannelId, channels, onBack }) {
+export default function VideoFeed({ videos, loading, selectedChannelId, channels, onBack, onLogout }) {
   const selectedChannel = channels?.find((c) => c.id === selectedChannelId);
   const headerTitle = selectedChannel ? selectedChannel.name : 'All Channels';
 
@@ -264,10 +264,10 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
             {videos.length} video{videos.length !== 1 ? 's' : ''}
           </span>
         )}
-        {!loading && videos.length > 0 && (
-          <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
+          {!loading && videos.length > 0 && (<>
             <button
-              onClick={() => downloadCsv(videos, `${headerTitle.replace(/\s+/g, '_')}_investment_feed.csv`)}
+              onClick={() => downloadCsv(videos, `${headerTitle.replace(/\s+/g, '_')}_market_feed.csv`)}
               className="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
             >
               ↓ CSV
@@ -278,8 +278,16 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
             >
               ↓ PDF
             </button>
-          </div>
-        )}
+          </>)}
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1 rounded hover:bg-zinc-800"
+            >
+              Sign out
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Loading skeleton */}
@@ -299,7 +307,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
           <p className="text-zinc-500 text-sm max-w-xs">
             {selectedChannelId
               ? 'This channel has no videos. Try refreshing it.'
-              : 'Add a YouTube channel from the sidebar to start seeing investment signals.'}
+              : 'Add a YouTube channel from the sidebar to start seeing market signals.'}
           </p>
         </div>
       )}

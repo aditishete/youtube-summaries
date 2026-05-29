@@ -8,7 +8,7 @@ services:
       - PORT=3001
       - POLL_INTERVAL_MINUTES=${POLL_INTERVAL_MINUTES:-30}
     volumes:
-      - db_data:/app/data
+      - db_data:/data
     networks:
       - app
 
@@ -17,6 +17,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    environment:
+      - BACKEND_HOST=backend:3001
     depends_on:
       - backend
     networks:

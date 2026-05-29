@@ -1,0 +1,24 @@
+# Fly.io config for the frontend (nginx + React)
+# Deploy with: fly deploy --config frontend/fly.toml
+
+app = 'yt-summary-frontend'
+primary_region = 'iad'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  # Uses Fly private networking to reach backend without going over the internet
+  BACKEND_HOST = 'yt-summary-backend.internal:3001'
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1

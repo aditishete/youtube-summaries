@@ -43,7 +43,7 @@ function downloadPdf(history) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(24, 24, 27);
-  doc.text('Video Summary History', margin, margin + 10);
+  doc.text('Video Brief History', margin, margin + 10);
 
   // Store per-row data for custom cell rendering
   const rowData = history.map((item) => {
@@ -176,7 +176,7 @@ export default function SummarizePage({ onBack, onLogout }) {
           ← Back
         </button>
         <span className="text-zinc-700">|</span>
-        <span className="text-zinc-300 font-semibold">Summarize Video</span>
+        <span className="text-zinc-300 font-semibold">Video Brief</span>
         {onLogout && (
           <button
             onClick={onLogout}
@@ -192,7 +192,7 @@ export default function SummarizePage({ onBack, onLogout }) {
 
           {/* URL input */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-zinc-100 mb-1">Summarize Any YouTube Video</h1>
+            <h1 className="text-2xl font-bold text-zinc-100 mb-1">Video Brief</h1>
             <p className="text-zinc-400 text-sm mb-5">
               Paste a YouTube URL to get an AI-generated summary in English.
             </p>
@@ -211,7 +211,7 @@ export default function SummarizePage({ onBack, onLogout }) {
                 disabled={loading || !url.trim()}
                 className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
               >
-                {loading ? 'Summarizing…' : 'Summarize'}
+                {loading ? 'Briefing…' : 'Get Brief'}
               </button>
             </form>
 
@@ -300,7 +300,7 @@ export default function SummarizePage({ onBack, onLogout }) {
                           </a>
                           {item.created_at && (
                             <p className="mt-2 text-zinc-500 text-xs">
-                              Summarized {formatDate(item.created_at)}
+                              Briefed {formatDate(item.created_at)}
                             </p>
                           )}
                         </td>

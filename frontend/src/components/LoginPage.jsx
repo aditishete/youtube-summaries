@@ -28,7 +28,7 @@ export default function LoginPage({ onLogin, onGoRegister }) {
         {/* App title */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">
-            Investment Dashboard
+            MarketBrief
           </h1>
           <p className="text-zinc-500 text-sm mt-1">
             Sign in to access your feed
