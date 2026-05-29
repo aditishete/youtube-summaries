@@ -5,6 +5,7 @@ import channelRoutes from './routes/channels.js';
 import videoRoutes from './routes/videos.js';
 import authRoutes from './routes/auth.js';
 import summarizeRoutes from './routes/summarize.js';
+import analyticsRoutes from './routes/analytics.js';
 import { startScheduler } from './scheduler.js';
 import { seedAdminUser } from './seed.js';
 
@@ -20,6 +21,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/summarize', summarizeRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

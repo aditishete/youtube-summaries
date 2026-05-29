@@ -116,6 +116,15 @@ db.exec(`
   )
 `);
 
+// Create user_visits table (one row per visit, throttled to ~1/hr in middleware)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_visits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    visited_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Create user_summaries table (keeps last 20 per user)
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_summaries (

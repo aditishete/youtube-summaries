@@ -6,6 +6,7 @@ import LoginPage from './components/LoginPage.jsx';
 import RegisterPage from './components/RegisterPage.jsx';
 import LandingPage from './components/LandingPage.jsx';
 import SummarizePage from './components/SummarizePage.jsx';
+import AnalyticsPage from './components/AnalyticsPage.jsx';
 import { getChannels, getVideos, addChannel, deleteChannel, refreshChannel, getMe } from './api.js';
 
 export default function App() {
@@ -193,6 +194,10 @@ export default function App() {
 
   if (appPage === 'summarize') {
     return <SummarizePage onBack={() => setAppPage('landing')} onLogout={handleLogout} />;
+  }
+
+  if (appPage === 'analytics') {
+    return <AnalyticsPage onBack={() => setAppPage('landing')} onLogout={handleLogout} />;
   }
 
   // appPage === 'dashboard'

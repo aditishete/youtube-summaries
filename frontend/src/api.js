@@ -133,3 +133,10 @@ export const reanalyzeVideo = async (id) => {
   if (!res.ok) throw new Error(data.error || 'Reanalysis failed');
   return data;
 };
+
+export const getAnalytics = async () => {
+  const res = await apiFetch(`${BASE}/analytics`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch analytics');
+  return data;
+};

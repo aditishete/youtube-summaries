@@ -28,7 +28,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
           Track investment channels and get AI-powered trade signals, or get an instant brief on any YouTube video.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+        <div className={`grid grid-cols-1 gap-6 w-full max-w-3xl ${currentUser?.role === 'admin' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           {/* Card 1 — Market Feed */}
           <button
             onClick={() => onNavigate('dashboard')}
@@ -64,6 +64,24 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
               Get a video brief <span>→</span>
             </span>
           </button>
+          {/* Card 3 — Analytics (admin only) */}
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={() => onNavigate('analytics')}
+              className="group text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-emerald-500 rounded-2xl p-8 transition-all duration-200 shadow-lg hover:shadow-emerald-900/20"
+            >
+              <div className="text-4xl mb-5">📊</div>
+              <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-emerald-400 transition-colors">
+                Analytics
+              </h2>
+              <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+                View user activity, visit counts, and video brief usage across all accounts.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 group-hover:gap-2.5 transition-all">
+                View analytics <span>→</span>
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </div>
