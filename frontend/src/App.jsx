@@ -24,6 +24,11 @@ export default function App() {
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // ── Pre-warm backend on page load to avoid cold-start delay ─────────────────
+  useEffect(() => {
+    fetch('/api/health').catch(() => {});
+  }, []);
+
   // ── Auth: check token on mount ──────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('token');
