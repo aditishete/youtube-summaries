@@ -109,6 +109,24 @@ export const getVideos = async (channelId = null, limit = 50, offset = 0) => {
   return data;
 };
 
+export const summarizeVideo = async (url) => {
+  const res = await apiFetch(`${BASE}/summarize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Summarization failed');
+  return data;
+};
+
+export const getSummaryHistory = async () => {
+  const res = await apiFetch(`${BASE}/summarize/history`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch history');
+  return data;
+};
+
 export const reanalyzeVideo = async (id) => {
   const res = await apiFetch(`${BASE}/videos/${id}/reanalyze`, { method: 'POST' });
   const data = await res.json();

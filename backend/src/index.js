@@ -4,6 +4,7 @@ import cors from 'cors';
 import channelRoutes from './routes/channels.js';
 import videoRoutes from './routes/videos.js';
 import authRoutes from './routes/auth.js';
+import summarizeRoutes from './routes/summarize.js';
 import { startScheduler } from './scheduler.js';
 import { seedAdminUser } from './seed.js';
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api/summarize', summarizeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -4,6 +4,8 @@ import VideoFeed from './components/VideoFeed.jsx';
 import AddChannelModal from './components/AddChannelModal.jsx';
 import LoginPage from './components/LoginPage.jsx';
 import RegisterPage from './components/RegisterPage.jsx';
+import LandingPage from './components/LandingPage.jsx';
+import SummarizePage from './components/SummarizePage.jsx';
 import { getChannels, getVideos, addChannel, deleteChannel, refreshChannel, getMe } from './api.js';
 
 export default function App() {
@@ -11,6 +13,7 @@ export default function App() {
   const [authStatus, setAuthStatus] = useState('checking'); // 'checking' | 'unauthenticated' | 'authenticated'
   const [currentUser, setCurrentUser] = useState(null);
   const [authPage, setAuthPage] = useState('login'); // 'login' | 'register'
+  const [appPage, setAppPage] = useState('landing'); // 'landing' | 'dashboard' | 'summarize'
 
   // ── Dashboard state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState([]);
@@ -59,11 +62,13 @@ export default function App() {
   const handleLoginSuccess = useCallback((user) => {
     setCurrentUser(user);
     setAuthStatus('authenticated');
+    setAppPage('landing');
   }, []);
 
   const handleRegisterSuccess = useCallback((user) => {
     setCurrentUser(user);
     setAuthStatus('authenticated');
+    setAppPage('landing');
   }, []);
 
   // ── Dashboard data loading ───────────────────────────────────────────────────
@@ -104,6 +109,16 @@ export default function App() {
       loadVideos(selectedChannelId);
     }
   }, [selectedChannelId, loadVideos, authStatus]);
+
+  // Auto-refresh every 5 minutes while on the dashboard
+  useEffect(() => {
+    if (authStatus !== 'authenticated' || appPage !== 'dashboard') return;
+    const id = setInterval(() => {
+      loadChannels();
+      loadVideos(selectedChannelId);
+    }, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [authStatus, appPage, selectedChannelId, loadChannels, loadVideos]);
 
   const handleChannelAdded = useCallback(async (url) => {
     await addChannel(url);
@@ -165,7 +180,22 @@ export default function App() {
     );
   }
 
-  // Authenticated: render dashboard
+  // Authenticated: route by appPage
+  if (appPage === 'landing') {
+    return (
+      <LandingPage
+        currentUser={currentUser}
+        onNavigate={setAppPage}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (appPage === 'summarize') {
+    return <SummarizePage onBack={() => setAppPage('landing')} />;
+  }
+
+  // appPage === 'dashboard'
   return (
     <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
       {/* Fixed sidebar */}
@@ -180,6 +210,7 @@ export default function App() {
           loading={loading}
           currentUser={currentUser}
           onLogout={handleLogout}
+          onBack={() => setAppPage('landing')}
         />
       </div>
 
@@ -200,6 +231,7 @@ export default function App() {
             loading={loading}
             selectedChannelId={selectedChannelId}
             channels={channels}
+            onBack={() => setAppPage('landing')}
           />
         )}
       </main>

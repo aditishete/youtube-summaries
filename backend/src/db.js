@@ -116,6 +116,21 @@ db.exec(`
   )
 `);
 
+// Create user_summaries table (keeps last 20 per user)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_summaries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    youtube_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    thumbnail TEXT,
+    url TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    key_points TEXT DEFAULT '[]',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Close DB cleanly so node --watch restarts don't hit "database is locked"
 function closeDb() {
   try { _db.close(); } catch (_) {}

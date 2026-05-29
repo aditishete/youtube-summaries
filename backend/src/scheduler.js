@@ -95,6 +95,11 @@ export function startScheduler() {
 
   console.log(`[Scheduler] Starting — polling every ${interval} minute(s). Cron: ${cronExpression}`);
 
+  // Poll immediately on startup so fresh videos appear after any restart
+  pollChannels().catch((err) => {
+    console.error('[Scheduler] Startup poll error:', err.message);
+  });
+
   cron.schedule(cronExpression, () => {
     pollChannels().catch((err) => {
       console.error('[Scheduler] Unexpected error during poll:', err.message);

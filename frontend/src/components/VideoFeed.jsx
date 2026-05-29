@@ -242,7 +242,7 @@ function SkeletonCard() {
   );
 }
 
-export default function VideoFeed({ videos, loading, selectedChannelId, channels }) {
+export default function VideoFeed({ videos, loading, selectedChannelId, channels, onBack }) {
   const selectedChannel = channels?.find((c) => c.id === selectedChannelId);
   const headerTitle = selectedChannel ? selectedChannel.name : 'All Channels';
 
@@ -250,6 +250,14 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
     <div className="p-6">
       {/* Feed Header */}
       <div className="flex items-center gap-3 mb-6">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200 transition-colors mr-1"
+          >
+            ← Back
+          </button>
+        )}
         <h2 className="text-xl font-bold text-zinc-100">{headerTitle}</h2>
         {!loading && (
           <span className="bg-zinc-800 text-zinc-400 text-xs font-mono px-2 py-1 rounded-full border border-zinc-700">

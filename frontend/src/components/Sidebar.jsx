@@ -51,6 +51,7 @@ export default function Sidebar({
   loading,
   currentUser,
   onLogout,
+  onBack,
 }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [refreshingId, setRefreshingId] = useState(null);
@@ -82,6 +83,15 @@ export default function Sidebar({
           <h1 className="text-base font-bold text-zinc-100 tracking-tight">
             Investment Feed
           </h1>
+          {onBack && (
+            <button
+              onClick={onBack}
+              title="Back to home"
+              className="text-zinc-500 hover:text-zinc-200 text-xs px-2 py-1 rounded hover:bg-zinc-700 transition-colors"
+            >
+              ← Home
+            </button>
+          )}
         </div>
         {isAdmin && (
           <button
