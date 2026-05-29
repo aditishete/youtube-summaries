@@ -60,42 +60,48 @@ export default function VideoCard({ video, onUpdated }) {
 
   return (
     <div className="bg-zinc-800 rounded-xl border border-zinc-700 hover:border-zinc-500 transition-colors duration-150 overflow-hidden">
-      <div className="flex">
+      {/* Mobile: stacked layout. Desktop: 3-column row */}
+      <div className="flex flex-col md:flex-row">
         {/* ── Column 1: Thumbnail + title ── */}
-        <div className="flex-1 flex flex-col border-r border-zinc-700">
-          {thumbnail_url && !imgError ? (
-            <img
-              src={thumbnail_url}
-              alt={title}
-              onError={() => setImgError(true)}
-              className="w-full object-cover"
-              style={{ aspectRatio: '16/9' }}
-            />
-          ) : (
-            <div className="w-full bg-zinc-700 flex items-center justify-center" style={{ aspectRatio: '16/9' }}>
-              <span className="text-zinc-500 text-3xl">▶</span>
+        <div className="md:flex-1 flex md:flex-col md:border-r border-zinc-700">
+          {/* Mobile: thumbnail left, title right. Desktop: thumbnail full-width on top */}
+          <div className="flex md:flex-col flex-1">
+            <div className="flex-shrink-0 w-32 md:w-full">
+              {thumbnail_url && !imgError ? (
+                <img
+                  src={thumbnail_url}
+                  alt={title}
+                  onError={() => setImgError(true)}
+                  className="w-full object-cover"
+                  style={{ aspectRatio: '16/9' }}
+                />
+              ) : (
+                <div className="w-full bg-zinc-700 flex items-center justify-center" style={{ aspectRatio: '16/9' }}>
+                  <span className="text-zinc-500 text-2xl">▶</span>
+                </div>
+              )}
             </div>
-          )}
-          <div className="p-3 flex flex-col gap-1">
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-zinc-100 font-semibold text-sm leading-snug hover:text-blue-400 transition-colors line-clamp-2"
-              title={title}
-            >
-              {title}
-            </a>
-            <div className="flex items-center gap-2 text-xs text-zinc-400">
-              {channel_name && <span className="font-medium text-zinc-300">{channel_name}</span>}
-              {channel_name && published_at && <span className="text-zinc-600">·</span>}
-              {published_at && <span>{formatDate(published_at)}</span>}
+            <div className="p-3 flex flex-col gap-1 flex-1 min-w-0">
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-100 font-semibold text-sm leading-snug hover:text-blue-400 transition-colors line-clamp-3"
+                title={title}
+              >
+                {title}
+              </a>
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+                {channel_name && <span className="font-medium text-zinc-300">{channel_name}</span>}
+                {channel_name && published_at && <span className="text-zinc-600">·</span>}
+                {published_at && <span>{formatDate(published_at)}</span>}
+              </div>
             </div>
           </div>
         </div>
 
         {/* ── Column 2: Summary ── */}
-        <div className="flex-1 p-4 flex flex-col justify-between gap-2 border-r border-zinc-700">
+        <div className="md:flex-1 p-3 md:p-4 flex flex-col justify-between gap-2 border-t md:border-t-0 md:border-r border-zinc-700">
           <div className="flex-1">
             {!analyzed_at || reanalyzing ? (
               <div className="flex items-center gap-2">
@@ -110,7 +116,6 @@ export default function VideoCard({ video, onUpdated }) {
               <span className="text-zinc-600 text-xs italic">No summary available</span>
             )}
           </div>
-
           {analyzed_at && !reanalyzing && (
             <button
               onClick={handleReanalyze}
@@ -123,7 +128,7 @@ export default function VideoCard({ video, onUpdated }) {
         </div>
 
         {/* ── Column 3: Recommendations ── */}
-        <div className="flex-1 p-4 flex flex-col gap-2">
+        <div className="md:flex-1 p-3 md:p-4 flex flex-col gap-2 border-t md:border-t-0 border-zinc-700">
           <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Recommendations</span>
           {!analyzed_at || reanalyzing ? (
             <div className="h-3.5 w-3.5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin mt-1" />

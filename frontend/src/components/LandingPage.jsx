@@ -4,7 +4,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-8 py-5 border-b border-zinc-800">
+      <header className="flex items-center justify-between px-4 md:px-8 py-4 md:py-5 border-b border-zinc-800">
         <div className="flex items-center gap-2">
           <span className="text-xl font-bold text-zinc-100">MarketBrief</span>
         </div>
@@ -23,8 +23,8 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
 
       {/* Hero */}
       <div className="flex flex-col items-center justify-center flex-1 px-6 py-16">
-        <h1 className="text-4xl font-bold text-zinc-100 mb-3 text-center">What would you like to do?</h1>
-        <p className="text-zinc-400 text-lg mb-14 text-center max-w-lg">
+        <h1 className="text-2xl md:text-4xl font-bold text-zinc-100 mb-3 text-center">What would you like to do?</h1>
+        <p className="text-zinc-400 text-base md:text-lg mb-8 md:mb-14 text-center max-w-lg">
           Track investment channels and get AI-powered trade signals, or get an instant brief on any YouTube video.
         </p>
 

@@ -10,6 +10,7 @@ primary_region = 'iad'
 [env]
   # Uses Fly private networking to reach backend without going over the internet
   BACKEND_HOST = 'yt-summary-backend.internal:3001'
+  NGINX_RESOLVER = '[fdaa::3]:53'
 
 [http_service]
   internal_port = 80

@@ -247,9 +247,9 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
   const headerTitle = selectedChannel ? selectedChannel.name : 'All Channels';
 
   return (
-    <div className="p-6">
-      {/* Feed Header */}
-      <div className="flex items-center gap-3 mb-6">
+    <div className="p-3 md:p-6">
+      {/* Feed Header — desktop only (mobile has its own top bar in App.jsx) */}
+      <div className="hidden md:flex items-center gap-3 mb-6">
         {onBack && (
           <button
             onClick={onBack}
@@ -288,6 +288,31 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
             </button>
           )}
         </div>
+      </div>
+
+      {/* Mobile: video count + export row */}
+      <div className="flex md:hidden items-center gap-2 mb-3">
+        {!loading && (
+          <span className="bg-zinc-800 text-zinc-400 text-xs font-mono px-2 py-1 rounded-full border border-zinc-700">
+            {videos.length} video{videos.length !== 1 ? 's' : ''}
+          </span>
+        )}
+        {!loading && videos.length > 0 && (
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => downloadCsv(videos, `${headerTitle.replace(/\s+/g, '_')}_market_feed.csv`)}
+              className="bg-zinc-800 border border-zinc-600 text-zinc-300 text-xs font-medium px-2.5 py-1.5 rounded-lg"
+            >
+              ↓ CSV
+            </button>
+            <button
+              onClick={() => downloadPdf(videos, headerTitle)}
+              className="bg-red-900/60 border border-red-700 text-red-300 text-xs font-medium px-2.5 py-1.5 rounded-lg"
+            >
+              ↓ PDF
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Loading skeleton */}

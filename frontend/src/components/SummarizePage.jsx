@@ -255,7 +255,8 @@ export default function SummarizePage({ onBack, onLogout }) {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-700 overflow-hidden">
+              {/* Desktop: table layout */}
+              <div className="hidden md:block rounded-xl border border-zinc-700 overflow-hidden">
                 <table className="w-full text-sm table-fixed">
                   <colgroup>
                     <col style={{ width: '30%' }} />
@@ -272,49 +273,25 @@ export default function SummarizePage({ onBack, onLogout }) {
                   <tbody className="divide-y divide-zinc-800">
                     {history.map((item, idx) => (
                       <tr key={item.id ?? idx} className="align-top hover:bg-zinc-800/30 transition-colors">
-                        {/* Thumbnail */}
                         <td className="px-4 py-3">
                           {item.thumbnail ? (
-                            <img
-                              src={item.thumbnail}
-                              alt={item.title}
-                              className="w-full aspect-video object-cover rounded-lg"
-                            />
+                            <img src={item.thumbnail} alt={item.title} className="w-full aspect-video object-cover rounded-lg" />
                           ) : (
                             <div className="w-full aspect-video bg-zinc-800 rounded-lg" />
                           )}
-                          <p className="mt-2 text-zinc-200 text-xs font-medium leading-snug line-clamp-2">
-                            {item.title}
-                          </p>
+                          <p className="mt-2 text-zinc-200 text-xs font-medium leading-snug line-clamp-2">{item.title}</p>
                         </td>
-
-                        {/* URL & date */}
                         <td className="px-4 py-3">
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-violet-400 text-xs hover:underline break-all leading-relaxed"
-                          >
-                            {item.url}
-                          </a>
-                          {item.created_at && (
-                            <p className="mt-2 text-zinc-500 text-xs">
-                              Briefed {formatDate(item.created_at)}
-                            </p>
-                          )}
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-violet-400 text-xs hover:underline break-all leading-relaxed">{item.url}</a>
+                          {item.created_at && <p className="mt-2 text-zinc-500 text-xs">Briefed {formatDate(item.created_at)}</p>}
                         </td>
-
-                        {/* Summary */}
                         <td className="px-4 py-3 text-zinc-300 text-xs leading-relaxed">
                           <p>{item.summary}</p>
                           {Array.isArray(item.keyPoints) && item.keyPoints.length > 0 && (
                             <ul className="mt-3 space-y-1.5">
                               {item.keyPoints.map((pt, i) => (
                                 <li key={i} className="flex gap-2 text-zinc-400">
-                                  <span className="flex-shrink-0 w-4 h-4 rounded-full bg-violet-900/60 text-violet-400 text-xs flex items-center justify-center font-medium mt-0.5">
-                                    {i + 1}
-                                  </span>
+                                  <span className="flex-shrink-0 w-4 h-4 rounded-full bg-violet-900/60 text-violet-400 text-xs flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
                                   <span>{pt}</span>
                                 </li>
                               ))}
@@ -325,6 +302,41 @@ export default function SummarizePage({ onBack, onLogout }) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile: card layout */}
+              <div className="md:hidden space-y-3">
+                {history.map((item, idx) => (
+                  <div key={item.id ?? idx} className="bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden">
+                    <div className="flex gap-3 p-3">
+                      <div className="flex-shrink-0 w-24">
+                        {item.thumbnail ? (
+                          <img src={item.thumbnail} alt={item.title} className="w-full aspect-video object-cover rounded-lg" />
+                        ) : (
+                          <div className="w-full aspect-video bg-zinc-800 rounded-lg" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-zinc-100 text-sm font-medium leading-snug line-clamp-2">{item.title}</p>
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-violet-400 text-xs hover:underline mt-1 block truncate">{item.url}</a>
+                        {item.created_at && <p className="text-zinc-500 text-xs mt-1">Briefed {formatDate(item.created_at)}</p>}
+                      </div>
+                    </div>
+                    <div className="px-3 pb-3 text-zinc-300 text-xs leading-relaxed border-t border-zinc-800 pt-2.5">
+                      <p>{item.summary}</p>
+                      {Array.isArray(item.keyPoints) && item.keyPoints.length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                          {item.keyPoints.map((pt, i) => (
+                            <li key={i} className="flex gap-2 text-zinc-400">
+                              <span className="flex-shrink-0 text-violet-400 font-medium">{i + 1}.</span>
+                              <span>{pt}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
