@@ -192,7 +192,7 @@ export default function App() {
   }
 
   if (appPage === 'summarize') {
-    return <SummarizePage onBack={() => setAppPage('landing')} />;
+    return <SummarizePage onBack={() => setAppPage('landing')} onLogout={handleLogout} />;
   }
 
   // appPage === 'dashboard'

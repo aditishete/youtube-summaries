@@ -126,7 +126,7 @@ function downloadPdf(history) {
   doc.save('summary_history.pdf');
 }
 
-export default function SummarizePage({ onBack }) {
+export default function SummarizePage({ onBack, onLogout }) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -177,6 +177,14 @@ export default function SummarizePage({ onBack }) {
         </button>
         <span className="text-zinc-700">|</span>
         <span className="text-zinc-300 font-semibold">Summarize Video</span>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            Sign out
+          </button>
+        )}
       </header>
 
       <main className="flex-1 overflow-y-auto">
