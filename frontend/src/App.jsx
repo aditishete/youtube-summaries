@@ -25,13 +25,26 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // ── Pre-warm backend on page load to avoid cold-start delay ─────────────────
+  // ── Wait for backend to be ready (handles Fly.io cold starts) ──────────────
+  const [backendReady, setBackendReady] = useState(false);
   useEffect(() => {
-    fetch('/api/health').catch(() => {});
+    let cancelled = false;
+    const ping = async () => {
+      while (!cancelled) {
+        try {
+          const res = await fetch('/api/health');
+          if (res.ok) { if (!cancelled) setBackendReady(true); return; }
+        } catch {}
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    };
+    ping();
+    return () => { cancelled = true; };
   }, []);
 
-  // ── Auth: check token on mount ──────────────────────────────────────────────
+  // ── Auth: check token once backend is confirmed ready ──────────────────────
   useEffect(() => {
+    if (!backendReady) return;
     const token = localStorage.getItem('token');
     if (!token) {
       setAuthStatus('unauthenticated');
@@ -46,7 +59,7 @@ export default function App() {
         localStorage.removeItem('token');
         setAuthStatus('unauthenticated');
       });
-  }, []);
+  }, [backendReady]);
 
   // ── Auth: listen for 401 events from api.js ─────────────────────────────────
   useEffect(() => {
@@ -159,12 +172,14 @@ export default function App() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  if (authStatus === 'checking') {
+  if (!backendReady || authStatus === 'checking') {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-zinc-700 border-t-blue-500 rounded-full animate-spin" />
-          <p className="text-zinc-500 text-sm">Loading...</p>
+          <p className="text-zinc-500 text-sm">
+            {!backendReady ? 'Server is starting up…' : 'Loading…'}
+          </p>
         </div>
       </div>
     );

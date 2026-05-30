@@ -2,15 +2,15 @@ import pkg from 'node-sqlite3-wasm';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { mkdirSync } from 'fs';
+// dirname re-used below for dbPath parent directory
 
 const { Database: WasmDB } = pkg;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(__dirname, '../../data');
-const dbPath = join(dataDir, 'dashboard.db');
+const dbPath = process.env.DB_PATH || join(__dirname, '../../data/dashboard.db');
 
 // Ensure data directory exists
-mkdirSync(dataDir, { recursive: true });
+mkdirSync(dirname(dbPath), { recursive: true });
 
 // Open the underlying wasm database
 const _db = new WasmDB(dbPath);
