@@ -222,6 +222,18 @@ export default function App() {
   }
 
   // appPage === 'dashboard'
+  // Compute visible counts per channel (what you'll see when you click each item)
+  const _threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const _byChannel = {};
+  for (const v of videos) (_byChannel[v.channel_id] = _byChannel[v.channel_id] || []).push(v);
+  const visibleCountByChannel = {};
+  let allChannelsVisibleCount = 0;
+  for (const [cid, cvids] of Object.entries(_byChannel)) {
+    const recent = cvids.filter(v => new Date(v.published_at) >= _threeDaysAgo);
+    visibleCountByChannel[parseInt(cid)] = recent.length > 10 ? recent.length : Math.min(10, cvids.length);
+    allChannelsVisibleCount += recent.length > 5 ? recent.length : Math.min(5, cvids.length);
+  }
+
   return (
     <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
       {/* Desktop sidebar (hidden on mobile) */}
@@ -237,6 +249,8 @@ export default function App() {
           currentUser={currentUser}
           onLogout={handleLogout}
           onBack={() => setAppPage('landing')}
+          visibleCountByChannel={visibleCountByChannel}
+          allChannelsVisibleCount={allChannelsVisibleCount}
         />
       </div>
 

@@ -52,6 +52,8 @@ export default function Sidebar({
   currentUser,
   onLogout,
   onBack,
+  visibleCountByChannel = {},
+  allChannelsVisibleCount = 0,
 }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [refreshingId, setRefreshingId] = useState(null);
@@ -122,7 +124,7 @@ export default function Sidebar({
                 : 'bg-zinc-700 text-zinc-400'
             }`}
           >
-            {channels.reduce((acc, c) => acc + (c.video_count || 0), 0)}
+            {allChannelsVisibleCount}
           </span>
         </button>
 
@@ -161,7 +163,7 @@ export default function Sidebar({
                       : 'bg-zinc-700 text-zinc-400'
                   }`}
                 >
-                  {channel.video_count || 0}
+                  {visibleCountByChannel[channel.id] ?? channel.video_count ?? 0}
                 </span>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import VideoCard from './VideoCard.jsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -246,6 +246,37 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
   const selectedChannel = channels?.find((c) => c.id === selectedChannelId);
   const headerTitle = selectedChannel ? selectedChannel.name : 'All Channels';
 
+  const [extraCount, setExtraCount] = useState(0);
+  const [disclosureOpen, setDisclosureOpen] = useState(false);
+  useEffect(() => { setExtraCount(0); }, [selectedChannelId]);
+
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+  let displayVideos, hasMore;
+  if (selectedChannelId) {
+    // Single channel: max 10, or all from past 3 days if >10
+    const recentVideos = videos.filter(v => new Date(v.published_at) >= threeDaysAgo);
+    const base = recentVideos.length > 10 ? recentVideos.length : 10;
+    const limit = base + extraCount * 10;
+    displayVideos = videos.slice(0, limit);
+    hasMore = videos.length > limit;
+  } else {
+    // All channels: per-channel rule — max 5 per channel, or all from past 3 days if >5 from that channel
+    const byChannel = {};
+    for (const v of videos) {
+      (byChannel[v.channel_id] = byChannel[v.channel_id] || []).push(v);
+    }
+    const merged = [];
+    for (const channelVideos of Object.values(byChannel)) {
+      const recent = channelVideos.filter(v => new Date(v.published_at) >= threeDaysAgo);
+      const toShow = recent.length > 5 ? recent : channelVideos.slice(0, 5);
+      merged.push(...toShow);
+    }
+    merged.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+    displayVideos = merged;
+    hasMore = false;
+  }
+
   return (
     <div className="p-3 md:p-6">
       {/* Feed Header — desktop only (mobile has its own top bar in App.jsx) */}
@@ -261,19 +292,19 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
         <h2 className="text-xl font-bold text-zinc-100">{headerTitle}</h2>
         {!loading && (
           <span className="bg-zinc-800 text-zinc-400 text-xs font-mono px-2 py-1 rounded-full border border-zinc-700">
-            {videos.length} video{videos.length !== 1 ? 's' : ''}
+            {displayVideos.length} video{displayVideos.length !== 1 ? 's' : ''}
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
-          {!loading && videos.length > 0 && (<>
+          {!loading && displayVideos.length > 0 && (<>
             <button
-              onClick={() => downloadCsv(videos, `${headerTitle.replace(/\s+/g, '_')}_market_feed.csv`)}
+              onClick={() => downloadCsv(displayVideos, `${headerTitle.replace(/\s+/g, '_')}_market_feed.csv`)}
               className="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
             >
               ↓ CSV
             </button>
             <button
-              onClick={() => downloadPdf(videos, headerTitle)}
+              onClick={() => downloadPdf(displayVideos, headerTitle)}
               className="flex items-center gap-1.5 bg-red-900/60 hover:bg-red-900 border border-red-700 hover:border-red-500 text-red-300 hover:text-red-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
             >
               ↓ PDF
@@ -294,25 +325,71 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
       <div className="flex md:hidden items-center gap-2 mb-3">
         {!loading && (
           <span className="bg-zinc-800 text-zinc-400 text-xs font-mono px-2 py-1 rounded-full border border-zinc-700">
-            {videos.length} video{videos.length !== 1 ? 's' : ''}
+            {displayVideos.length} video{displayVideos.length !== 1 ? 's' : ''}
           </span>
         )}
-        {!loading && videos.length > 0 && (
+        {!loading && displayVideos.length > 0 && (
           <div className="ml-auto flex items-center gap-2">
             <button
-              onClick={() => downloadCsv(videos, `${headerTitle.replace(/\s+/g, '_')}_market_feed.csv`)}
+              onClick={() => downloadCsv(displayVideos, `${headerTitle.replace(/\s+/g, '_')}_market_feed.csv`)}
               className="bg-zinc-800 border border-zinc-600 text-zinc-300 text-xs font-medium px-2.5 py-1.5 rounded-lg"
             >
               ↓ CSV
             </button>
             <button
-              onClick={() => downloadPdf(videos, headerTitle)}
+              onClick={() => downloadPdf(displayVideos, headerTitle)}
               className="bg-red-900/60 border border-red-700 text-red-300 text-xs font-medium px-2.5 py-1.5 rounded-lg"
             >
               ↓ PDF
             </button>
           </div>
         )}
+      </div>
+
+      {/* Disclosure banner + modal */}
+      {disclosureOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70" onClick={() => setDisclosureOpen(false)}>
+          <div className="bg-zinc-900 border border-amber-400/40 rounded-xl max-w-lg w-full p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <h2 className="text-amber-300 font-bold text-lg">Why Finfluencer Advice can be Risky</h2>
+              <button onClick={() => setDisclosureOpen(false)} className="text-zinc-500 hover:text-zinc-200 ml-4 text-xl leading-none">✕</button>
+            </div>
+            <div className="text-zinc-300 text-sm leading-relaxed space-y-4 max-h-96 overflow-y-auto pr-1">
+              <p>Relying on financial influencers ("finfluencers") for investment advice is highly risky because they typically lack formal credentials, promote unregulated or high-risk assets, and are often paid to endorse products. Unlike licensed professionals, finfluencers are rarely fiduciaries, lack accountability for poor recommendations, and cater to algorithms by prioritizing sensationalism over safe, nuanced financial planning.</p>
+              <div>
+                <p className="text-amber-300 font-semibold mb-2">Key Risks of Finfluencer Advice</p>
+                <ul className="space-y-2 list-none">
+                  <li><span className="text-amber-400">•</span> <span className="text-zinc-200 font-medium">Lack of Credentials:</span> Many finfluencers are self-taught and lack professional licenses (like CFP, CPA, or CFA) or the regulatory oversight required of legitimate investment advisors.</li>
+                  <li><span className="text-amber-400">•</span> <span className="text-zinc-200 font-medium">Hidden Conflicts of Interest:</span> Content is frequently monetized through affiliate links, sponsorships, or undisclosed partnerships. They may benefit financially from your clicks or purchases regardless of whether the product is right for you.</li>
+                  <li><span className="text-amber-400">•</span> <span className="text-zinc-200 font-medium">One-Size-Fits-All Advice:</span> Social media content is designed for mass audiences. Finfluencers do not know your unique income, debt, tax situation, or risk tolerance, making their advice largely inapplicable or outright dangerous to your personal circumstances.</li>
+                  <li><span className="text-amber-400">•</span> <span className="text-zinc-200 font-medium">Vulnerability to Scams:</span> Studies indicate that individuals who rely on social media financial advice are significantly more susceptible to investment scams, "pump-and-dump" schemes, or losing money in unregulated spaces like crypto.</li>
+                  <li><span className="text-amber-400">•</span> <span className="text-zinc-200 font-medium">Lack of Nuance:</span> Social media algorithms reward extreme viewpoints and absolutes (e.g., "Cash is trash," "Buy this stock now"). Sound financial advice almost always operates in the gray area of "it depends".</li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-amber-300 font-semibold mb-2">How to Protect Your Money</p>
+                <ul className="space-y-2 list-none">
+                  <li><span className="text-amber-400">•</span> <span className="text-zinc-200 font-medium">Verify the Source:</span> Never blindly trust a finfluencer. Check if they have official designations or licenses through regulatory databases such as SEC Investment Adviser Public Disclosure or FINRA BrokerCheck.</li>
+                  <li><span className="text-amber-400">•</span> <span className="text-zinc-200 font-medium">Question the Motive:</span> Ask yourself: Is this advice benefiting the influencer more than it benefits me? Be highly skeptical of anyone promising guaranteed returns.</li>
+                  <li><span className="text-amber-400">•</span> <span className="text-zinc-200 font-medium">Consult Professionals:</span> Use educational content to build basic financial literacy, but consult certified financial professionals for actual financial planning and personalised advice.</li>
+                </ul>
+              </div>
+              <p className="text-zinc-500 italic text-xs border-t border-zinc-700 pt-3">AI responses may include mistakes. This content is for informational purposes only and does not constitute financial advice.</p>
+            </div>
+            <button onClick={() => setDisclosureOpen(false)} className="mt-6 w-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-semibold text-sm py-2 rounded-lg transition-colors">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="flex items-center justify-between bg-amber-400/10 border border-amber-400/50 rounded-lg px-4 py-3 mb-5">
+        <span className="text-amber-300 font-semibold text-sm">Disclosures: Why Finfluencer Advice can be Risky</span>
+        <button
+          onClick={() => setDisclosureOpen(true)}
+          className="text-amber-400 text-sm underline hover:text-amber-300 ml-4 flex-shrink-0"
+        >
+          Read Disclosures
+        </button>
       </div>
 
       {/* Loading skeleton */}
@@ -325,7 +402,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
       )}
 
       {/* Empty state */}
-      {!loading && videos.length === 0 && (
+      {!loading && displayVideos.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="text-5xl mb-4">📭</div>
           <h3 className="text-zinc-300 font-semibold text-lg mb-2">No videos yet</h3>
@@ -338,11 +415,23 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
       )}
 
       {/* Video list */}
-      {!loading && videos.length > 0 && (
+      {!loading && displayVideos.length > 0 && (
         <div className="space-y-4">
-          {videos.map((video) => (
+          {displayVideos.map((video) => (
             <VideoCard key={video.id} video={video} />
           ))}
+        </div>
+      )}
+
+      {/* Show more */}
+      {!loading && hasMore && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={() => setExtraCount(e => e + 1)}
+            className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 text-sm font-medium px-5 py-2 rounded-lg transition-colors"
+          >
+            Show more
+          </button>
         </div>
       )}
     </div>
