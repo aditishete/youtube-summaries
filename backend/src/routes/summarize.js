@@ -70,16 +70,20 @@ ${transcript.slice(0, 14000)}
 Respond with ONLY a JSON object, no markdown fences:
 {
   "summary": "3-5 sentence overall summary of the video",
-  "keyPoints": [
-    "Key point 1",
-    "Key point 2",
-    "Key point 3"
-  ]
+  "keyPoints": ["Key point 1", "Key point 2"],
+  "tickers": ["AAPL", "BTC"],
+  "trade_signals": [
+    { "ticker": "AAPL", "signal": "BUY", "reasoning": "reason under 120 chars" }
+  ],
+  "recommendations": ["Actionable recommendation 1", "Actionable recommendation 2"]
 }
 
 Rules:
 - summary: plain English, concise, covers the main topic
 - keyPoints: 5-8 most important takeaways from the video
+- tickers: every stock/ETF/crypto symbol explicitly mentioned (empty array if none)
+- trade_signals: only when the speaker makes a clear directional call; signal must be BUY, SELL, WATCH, or HOLD (empty array if none)
+- recommendations: 3-5 specific, actionable things the viewer should do based on this video — only for self-help, health, diet, fitness, productivity, or lifestyle videos; empty array for investment/finance videos or videos with no actionable viewer advice
 - Write in English regardless of the transcript language`,
         },
       ],
@@ -102,13 +106,16 @@ Rules:
       url: `https://www.youtube.com/watch?v=${videoId}`,
       summary: parsed.summary || '',
       keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints : [],
+      tickers: Array.isArray(parsed.tickers) ? parsed.tickers : [],
+      trade_signals: Array.isArray(parsed.trade_signals) ? parsed.trade_signals : [],
+      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
     };
 
     // Save to history and prune to last 20 for this user
     db.prepare(`
-      INSERT INTO user_summaries (user_id, youtube_id, title, thumbnail, url, summary, key_points)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(req.user.id, result.videoId, result.title, result.thumbnail, result.url, result.summary, JSON.stringify(result.keyPoints));
+      INSERT INTO user_summaries (user_id, youtube_id, title, thumbnail, url, summary, key_points, tickers, trade_signals, recommendations)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(req.user.id, result.videoId, result.title, result.thumbnail, result.url, result.summary, JSON.stringify(result.keyPoints), JSON.stringify(result.tickers), JSON.stringify(result.trade_signals), JSON.stringify(result.recommendations));
 
     db.prepare(`
       DELETE FROM user_summaries
@@ -136,9 +143,21 @@ router.get('/history', requireAuth, (req, res) => {
   const history = rows.map((r) => ({
     ...r,
     keyPoints: (() => { try { return JSON.parse(r.key_points || '[]'); } catch { return []; } })(),
+    tickers: (() => { try { return JSON.parse(r.tickers || '[]'); } catch { return []; } })(),
+    trade_signals: (() => { try { return JSON.parse(r.trade_signals || '[]'); } catch { return []; } })(),
+    recommendations: (() => { try { return JSON.parse(r.recommendations || '[]'); } catch { return []; } })(),
   }));
 
   res.json({ history });
+});
+
+// DELETE /api/summarize/history/:id
+router.delete('/history/:id', requireAuth, (req, res) => {
+  const result = db.prepare(
+    'DELETE FROM user_summaries WHERE id = ? AND user_id = ?'
+  ).run(req.params.id, req.user.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
+  res.status(204).end();
 });
 
 export default router;

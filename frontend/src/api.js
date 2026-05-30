@@ -137,6 +137,24 @@ export const getSummaryHistory = async () => {
   return data;
 };
 
+export const deleteVideo = async (id) => {
+  const res = await apiFetch(`${BASE}/videos/${id}`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 204) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to delete video');
+  }
+  return res;
+};
+
+export const deleteSummaryItem = async (id) => {
+  const res = await apiFetch(`${BASE}/summarize/history/${id}`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 204) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to delete summary');
+  }
+  return res;
+};
+
 export const reanalyzeVideo = async (id) => {
   const res = await apiFetch(`${BASE}/videos/${id}/reanalyze`, { method: 'POST' });
   const data = await safeJSON(res);

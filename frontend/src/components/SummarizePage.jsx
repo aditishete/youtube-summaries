@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { summarizeVideo, getSummaryHistory } from '../api.js';
+import { summarizeVideo, getSummaryHistory, deleteSummaryItem } from '../api.js';
+import SignalBadge from './SignalBadge.jsx';
 
 function pdfSafe(str) {
   return String(str ?? '').replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
@@ -17,14 +18,31 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function buildRecsCsv(item) {
+  const signals = Array.isArray(item.trade_signals) ? item.trade_signals : [];
+  const tickerList = Array.isArray(item.tickers) ? item.tickers : [];
+  const recs = Array.isArray(item.recommendations) ? item.recommendations : [];
+  if (signals.length > 0 || tickerList.length > 0) {
+    const signalMap = Object.fromEntries(signals.map((s) => [s.ticker, s]));
+    const mentionOnly = tickerList.filter((t) => !signalMap[t]);
+    const parts = [
+      ...signals.map((s) => `${s.ticker}: ${s.signal}${s.reasoning ? ` (${s.reasoning})` : ''}`),
+      ...(mentionOnly.length ? [`Mentions: ${mentionOnly.join(', ')}`] : []),
+    ];
+    return parts.join(' | ');
+  }
+  return recs.map((r, i) => `${i + 1}. ${r}`).join(' | ');
+}
+
 function downloadCsv(history) {
-  const header = ['Thumbnail URL', 'Video URL', 'Summarized On', 'Summary', 'Key Points'];
+  const header = ['Thumbnail URL', 'Video URL', 'Summarized On', 'Summary', 'Key Points', 'Recommendations'];
   const rows = history.map((item) => [
     csvCell(item.thumbnail),
     csvCell(item.url),
     csvCell(formatDate(item.created_at)),
     csvCell(item.summary),
     csvCell(Array.isArray(item.keyPoints) ? item.keyPoints.join(' | ') : ''),
+    csvCell(buildRecsCsv(item)),
   ]);
   const csv = [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -48,19 +66,40 @@ function downloadPdf(history) {
   // Store per-row data for custom cell rendering
   const rowData = history.map((item) => {
     const kp = Array.isArray(item.keyPoints) ? item.keyPoints : [];
+    const signals = Array.isArray(item.trade_signals) ? item.trade_signals : [];
+    const tickerList = Array.isArray(item.tickers) ? item.tickers : [];
+    const recs = Array.isArray(item.recommendations) ? item.recommendations : [];
+    const signalMap = Object.fromEntries(signals.map((s) => [s.ticker, s]));
+    const mentionOnly = tickerList.filter((t) => !signalMap[t]);
+    const hasInvestment = signals.length > 0 || tickerList.length > 0;
+
+    let recText = '';
+    if (hasInvestment) {
+      const parts = [
+        ...signals.map((s) => `${pdfSafe(s.ticker)}: ${s.signal}${s.reasoning ? '\n  ' + pdfSafe(s.reasoning) : ''}`),
+        ...(mentionOnly.length ? ['Mentions: ' + mentionOnly.map(pdfSafe).join(', ')] : []),
+      ];
+      recText = parts.join('\n');
+    } else if (recs.length > 0) {
+      recText = recs.map((r, i) => `${i + 1}. ${pdfSafe(r)}`).join('\n');
+    }
+
     return {
       title: pdfSafe(item.title || ''),
       url: item.url || '',
       date: formatDate(item.created_at),
       summary: pdfSafe(item.summary || ''),
       keyPoints: kp.map((p) => pdfSafe(p)),
+      recText,
     };
   });
 
+  const avail = pageW - margin * 2;
   const rows = rowData.map((r) => [
     r.title,
     '',  // rendered manually via didDrawCell
     r.summary + (r.keyPoints.length ? '\n\nKey Points:\n' + r.keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n') : ''),
+    r.recText,
   ]);
 
   const PAD = 5;
@@ -69,17 +108,17 @@ function downloadPdf(history) {
   autoTable(doc, {
     startY: margin + 24,
     margin: { left: margin, right: margin },
-    head: [['Title', 'URL & Date', 'Summary']],
+    head: [['Title', 'URL & Date', 'Summary', 'Recommendations']],
     body: rows,
     styles: { font: 'helvetica', fontSize: 8, cellPadding: PAD, overflow: 'linebreak', valign: 'top', textColor: [39, 39, 42] },
     headStyles: { fillColor: [39, 39, 42], textColor: [244, 244, 245], fontStyle: 'bold', fontSize: 8 },
     columnStyles: {
-      0: { cellWidth: (pageW - margin * 2) * 0.30 },
-      1: { cellWidth: (pageW - margin * 2) * 0.30 },
-      2: { cellWidth: (pageW - margin * 2) * 0.40 },
+      0: { cellWidth: avail * 0.22 },
+      1: { cellWidth: avail * 0.22 },
+      2: { cellWidth: avail * 0.30 },
+      3: { cellWidth: 'auto' },
     },
     willDrawCell(data) {
-      // Clear the placeholder text in the URL column so we can draw manually
       if (data.section === 'body' && data.column.index === 1) {
         data.cell.text = [];
       }
@@ -126,12 +165,55 @@ function downloadPdf(history) {
   doc.save('summary_history.pdf');
 }
 
+function Recommendations({ tickers, tradeSignals, recommendations }) {
+  const signals = Array.isArray(tradeSignals) ? tradeSignals : [];
+  const tickerList = Array.isArray(tickers) ? tickers : [];
+  const recs = Array.isArray(recommendations) ? recommendations : [];
+  const hasInvestment = signals.length > 0 || tickerList.length > 0;
+
+  if (!hasInvestment && recs.length === 0) return null;
+
+  if (hasInvestment) {
+    const signalMap = Object.fromEntries(signals.map((s) => [s.ticker, s]));
+    const mentionOnly = tickerList.filter((t) => !signalMap[t]);
+    return (
+      <div className="flex flex-col gap-2">
+        {signals.map((s, i) => (
+          <div key={`${s.ticker}-${i}`} className="flex flex-col gap-0.5">
+            <SignalBadge signal={s} />
+            {s.reasoning && <span className="text-zinc-400 text-xs leading-snug pl-0.5">{s.reasoning}</span>}
+          </div>
+        ))}
+        {mentionOnly.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {mentionOnly.map((t) => (
+              <span key={t} className="bg-zinc-700 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600">{t}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <ul className="flex flex-col gap-1.5">
+      {recs.map((r, i) => (
+        <li key={i} className="flex gap-2 text-xs text-zinc-300">
+          <span className="flex-shrink-0 w-4 h-4 rounded-full bg-emerald-900/60 text-emerald-400 flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
+          <span>{r}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function SummarizePage({ onBack, onLogout }) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
     getSummaryHistory()
@@ -139,6 +221,17 @@ export default function SummarizePage({ onBack, onLogout }) {
       .catch(() => {})
       .finally(() => setHistoryLoading(false));
   }, []);
+
+  async function handleDelete(id) {
+    try {
+      await deleteSummaryItem(id);
+      setHistory((prev) => prev.filter((item) => item.id !== id));
+    } catch (err) {
+      console.error('Delete failed:', err);
+    } finally {
+      setConfirmDeleteId(null);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -155,7 +248,7 @@ export default function SummarizePage({ onBack, onLogout }) {
 
     try {
       const data = await summarizeVideo(trimmed);
-      const entry = { ...data, keyPoints: data.keyPoints, created_at: new Date().toISOString() };
+      const entry = { ...data, keyPoints: data.keyPoints, tickers: data.tickers || [], trade_signals: data.trade_signals || [], recommendations: data.recommendations || [], created_at: new Date().toISOString() };
       setHistory((prev) => [entry, ...prev].slice(0, 20));
       setUrl('');
     } catch (err) {
@@ -259,15 +352,19 @@ export default function SummarizePage({ onBack, onLogout }) {
               <div className="hidden md:block rounded-xl border border-zinc-700 overflow-hidden">
                 <table className="w-full text-sm table-fixed">
                   <colgroup>
-                    <col style={{ width: '30%' }} />
-                    <col style={{ width: '30%' }} />
-                    <col style={{ width: '40%' }} />
+                    <col style={{ width: '17%' }} />
+                    <col style={{ width: '17%' }} />
+                    <col style={{ width: '35%' }} />
+                    <col style={{ width: '23%' }} />
+                    <col style={{ width: '8%' }} />
                   </colgroup>
                   <thead>
                     <tr className="bg-zinc-800/80">
                       <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Video</th>
                       <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">URL &amp; Date</th>
                       <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Summary</th>
+                      <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Recommendations</th>
+                      <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Remove</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
@@ -298,6 +395,25 @@ export default function SummarizePage({ onBack, onLogout }) {
                             </ul>
                           )}
                         </td>
+                        <td className="px-4 py-3">
+                          <Recommendations tickers={item.tickers} tradeSignals={item.trade_signals} recommendations={item.recommendations} />
+                        </td>
+                        <td className="px-4 py-3">
+                          {confirmDeleteId === (item.id ?? idx) ? (
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-red-400 text-xs font-semibold">Remove?</span>
+                              <button onClick={() => handleDelete(item.id ?? idx)} className="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg transition-colors">Yes</button>
+                              <button onClick={() => setConfirmDeleteId(null)} className="bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs px-2 py-1 rounded-lg transition-colors">No</button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteId(item.id ?? idx)}
+                              className="bg-red-900/50 hover:bg-red-700 border border-red-700 hover:border-red-500 text-red-300 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -321,6 +437,21 @@ export default function SummarizePage({ onBack, onLogout }) {
                         <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-violet-400 text-xs hover:underline mt-1 block truncate">{item.url}</a>
                         {item.created_at && <p className="text-zinc-500 text-xs mt-1">Briefed {formatDate(item.created_at)}</p>}
                       </div>
+                      <div className="flex-shrink-0 flex items-start pt-0.5">
+                        {confirmDeleteId === (item.id ?? idx) ? (
+                          <div className="flex flex-col gap-1">
+                            <button onClick={() => handleDelete(item.id ?? idx)} className="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg transition-colors">Yes</button>
+                            <button onClick={() => setConfirmDeleteId(null)} className="bg-zinc-700 text-zinc-200 text-xs px-2 py-1 rounded-lg transition-colors">No</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(item.id ?? idx)}
+                            className="bg-red-900/50 hover:bg-red-700 border border-red-700 text-red-300 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="px-3 pb-3 text-zinc-300 text-xs leading-relaxed border-t border-zinc-800 pt-2.5">
                       <p>{item.summary}</p>
@@ -334,6 +465,7 @@ export default function SummarizePage({ onBack, onLogout }) {
                           ))}
                         </ul>
                       )}
+                      <Recommendations tickers={item.tickers} tradeSignals={item.trade_signals} recommendations={item.recommendations} />
                     </div>
                   </div>
                 ))}

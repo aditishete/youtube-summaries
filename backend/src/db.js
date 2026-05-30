@@ -125,6 +125,15 @@ db.exec(`
   )
 `);
 
+// Create user_video_requests table (one row per GET /api/videos call)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_video_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    requested_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Create user_summaries table (keeps last 20 per user)
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_summaries (
@@ -139,6 +148,11 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
+
+// Add tickers/trade_signals/recommendations columns if they don't exist yet (migration)
+try { db.exec('ALTER TABLE user_summaries ADD COLUMN tickers TEXT DEFAULT \'[]\''); } catch (_) {}
+try { db.exec('ALTER TABLE user_summaries ADD COLUMN trade_signals TEXT DEFAULT \'[]\''); } catch (_) {}
+try { db.exec('ALTER TABLE user_summaries ADD COLUMN recommendations TEXT DEFAULT \'[]\''); } catch (_) {}
 
 // Close DB cleanly so node --watch restarts don't hit "database is locked"
 function closeDb() {

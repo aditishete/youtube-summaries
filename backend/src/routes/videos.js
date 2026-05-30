@@ -10,6 +10,8 @@ const router = Router();
 // Query params: channel_id, limit (default 50), offset (default 0)
 router.get('/', requireAuth, (req, res) => {
   try {
+    db.prepare('INSERT INTO user_video_requests (user_id) VALUES (?)').run(req.user.id);
+
     const limit = parseInt(req.query.limit || '50', 10);
     const offset = parseInt(req.query.offset || '0', 10);
     const channelId = req.query.channel_id ? parseInt(req.query.channel_id, 10) : null;
@@ -92,6 +94,18 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('POST /videos/:id/reanalyze error:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/videos/:id
+router.delete('/:id', requireAuth, (req, res) => {
+  try {
+    const result = db.prepare('DELETE FROM videos WHERE id = ?').run(req.params.id);
+    if (result.changes === 0) return res.status(404).json({ error: 'Video not found' });
+    res.status(204).end();
+  } catch (err) {
+    console.error('DELETE /videos/:id error:', err);
+    res.status(500).json({ error: 'Failed to delete video' });
   }
 });
 

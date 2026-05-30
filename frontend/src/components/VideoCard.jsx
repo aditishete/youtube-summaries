@@ -164,6 +164,7 @@ export default function VideoCard({ video, onUpdated }) {
             <span className="text-zinc-600 text-xs italic">—</span>
           )}
         </div>
+
       </div>
     </div>
   );
