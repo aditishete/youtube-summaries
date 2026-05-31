@@ -96,21 +96,21 @@ export default function AnalyticsPage({ onBack, onLogout }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <StatCard label="Unique Visitors Today" value={data.unique_visitors_today} sub="distinct users" />
               <StatCard label="Total Users" value={data.total_users} sub="registered accounts" />
-              <StatCard label="Briefs This Month" value={data.briefs_this_month} sub="video briefs generated" />
+              <StatCard label="Briefs This Month" value={data.briefs_this_month} sub="video in briefs generated" />
               <StatCard label="Video Requests Today" value={data.video_requests_today} sub="feed loads today" />
             </div>
 
             {/* Activity breakdown */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <GroupCard
-                label="Market Feed Page Visits"
+                label="Market Brief Page Visits"
                 color="blue"
                 today={data.page_visits_today}
                 week={data.page_visits_week}
                 month={data.page_visits_month}
               />
               <GroupCard
-                label="Video Feed Requests"
+                label="Market Brief Requests"
                 color="violet"
                 today={data.video_requests_today}
                 week={data.video_requests_week}
@@ -153,10 +153,10 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                         ── Page Visits ───────────────
                       </td>
                       <td colSpan={5} className="px-3 pb-1.5 text-xs text-violet-400/70 font-medium uppercase tracking-wide">
-                        ── Video Feed Requests ────────
+                        ── Market Brief Requests ──────
                       </td>
                       <td colSpan={5} className="px-3 pb-1.5 text-xs text-emerald-400/70 font-medium uppercase tracking-wide">
-                        ── Video Briefs ──────────────
+                        ── Video In Briefs ───────────
                       </td>
                     </tr>
                   </thead>

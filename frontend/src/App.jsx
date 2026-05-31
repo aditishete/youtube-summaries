@@ -14,7 +14,7 @@ export default function App() {
   const [authStatus, setAuthStatus] = useState('checking'); // 'checking' | 'unauthenticated' | 'authenticated'
   const [currentUser, setCurrentUser] = useState(null);
   const [authPage, setAuthPage] = useState('login'); // 'login' | 'register'
-  const [appPage, setAppPage] = useState('landing'); // 'landing' | 'dashboard' | 'summarize'
+  const [appPage, setAppPage] = useState(() => localStorage.getItem('appPage') || 'landing');
 
   // ── Dashboard state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState([]);
@@ -72,11 +72,17 @@ export default function App() {
     return () => window.removeEventListener('auth:logout', handleAuthLogout);
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('appPage', appPage);
+  }, [appPage]);
+
   const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
+    localStorage.setItem('appPage', 'landing');
     setCurrentUser(null);
     setAuthStatus('unauthenticated');
     setAuthPage('login');
+    setAppPage('landing');
   }, []);
 
   const handleLoginSuccess = useCallback((user) => {

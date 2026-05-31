@@ -83,7 +83,7 @@ export default function Sidebar({
       <div className="p-4 border-b border-zinc-800">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-base font-bold text-zinc-100 tracking-tight">
-            Market Feed
+            Market Brief
           </h1>
           {onBack && (
             <button

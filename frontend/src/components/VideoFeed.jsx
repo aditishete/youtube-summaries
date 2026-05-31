@@ -219,7 +219,7 @@ function downloadPdf(videos, title) {
     },
   });
 
-  doc.save(`${title.replace(/\s+/g, '_')}_market_feed.pdf`);
+  doc.save(`${title.replace(/\s+/g, '_')}_market_brief.pdf`);
 }
 
 function SkeletonCard() {
@@ -278,7 +278,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
   }
 
   return (
-    <div className="p-3 md:p-6">
+    <div className="p-3 md:py-6 md:px-[5%]">
       {/* Feed Header — desktop only (mobile has its own top bar in App.jsx) */}
       <div className="hidden md:flex items-center gap-3 mb-6">
         {onBack && (
@@ -298,7 +298,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
         <div className="ml-auto flex items-center gap-2">
           {!loading && displayVideos.length > 0 && (<>
             <button
-              onClick={() => downloadCsv(displayVideos, `${headerTitle.replace(/\s+/g, '_')}_market_feed.csv`)}
+              onClick={() => downloadCsv(displayVideos, `${headerTitle.replace(/\s+/g, '_')}_market_brief.csv`)}
               className="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
             >
               ↓ CSV
@@ -331,7 +331,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
         {!loading && displayVideos.length > 0 && (
           <div className="ml-auto flex items-center gap-2">
             <button
-              onClick={() => downloadCsv(displayVideos, `${headerTitle.replace(/\s+/g, '_')}_market_feed.csv`)}
+              onClick={() => downloadCsv(displayVideos, `${headerTitle.replace(/\s+/g, '_')}_market_brief.csv`)}
               className="bg-zinc-800 border border-zinc-600 text-zinc-300 text-xs font-medium px-2.5 py-1.5 rounded-lg"
             >
               ↓ CSV

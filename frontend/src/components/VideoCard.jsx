@@ -86,12 +86,12 @@ export default function VideoCard({ video, onUpdated }) {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-zinc-100 font-semibold text-sm leading-snug hover:text-blue-400 transition-colors line-clamp-3"
+                className="text-zinc-100 font-semibold text-lg leading-snug hover:text-blue-400 transition-colors line-clamp-3"
                 title={title}
               >
                 {title}
               </a>
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+              <div className="flex flex-wrap items-center gap-1.5 text-sm text-zinc-400">
                 {channel_name && <span className="font-medium text-zinc-300">{channel_name}</span>}
                 {channel_name && published_at && <span className="text-zinc-600">·</span>}
                 {published_at && <span>{formatDate(published_at)}</span>}
@@ -111,9 +111,9 @@ export default function VideoCard({ video, onUpdated }) {
                 </span>
               </div>
             ) : summary ? (
-              <p className="text-zinc-300 text-xs leading-relaxed">{summary}</p>
+              <p className="text-zinc-300 text-lg leading-relaxed">{summary}</p>
             ) : (
-              <span className="text-zinc-600 text-xs italic">No summary available</span>
+              <span className="text-zinc-600 text-base italic">No summary available</span>
             )}
           </div>
           {analyzed_at && !reanalyzing && (
@@ -138,7 +138,7 @@ export default function VideoCard({ video, onUpdated }) {
                 <div key={`${s.ticker}-${i}`} className="flex flex-col gap-0.5">
                   <SignalBadge signal={s} />
                   {s.reasoning && (
-                    <span className="text-zinc-400 text-xs leading-snug pl-0.5">{s.reasoning}</span>
+                    <span className="text-zinc-400 text-base leading-snug pl-0.5">{s.reasoning}</span>
                   )}
                 </div>
               ))}

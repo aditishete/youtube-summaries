@@ -61,7 +61,7 @@ function downloadPdf(history) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(24, 24, 27);
-  doc.text('Video Brief History', margin, margin + 10);
+  doc.text('Video In Brief History', margin, margin + 10);
 
   // Store per-row data for custom cell rendering
   const rowData = history.map((item) => {
@@ -165,11 +165,12 @@ function downloadPdf(history) {
   doc.save('summary_history.pdf');
 }
 
-function Recommendations({ tickers, tradeSignals, recommendations }) {
+function Recommendations({ tickers, tradeSignals, recommendations, large }) {
   const signals = Array.isArray(tradeSignals) ? tradeSignals : [];
   const tickerList = Array.isArray(tickers) ? tickers : [];
   const recs = Array.isArray(recommendations) ? recommendations : [];
   const hasInvestment = signals.length > 0 || tickerList.length > 0;
+  const textSize = large ? 'text-lg' : 'text-base';
 
   if (!hasInvestment && recs.length === 0) return null;
 
@@ -181,7 +182,7 @@ function Recommendations({ tickers, tradeSignals, recommendations }) {
         {signals.map((s, i) => (
           <div key={`${s.ticker}-${i}`} className="flex flex-col gap-0.5">
             <SignalBadge signal={s} />
-            {s.reasoning && <span className="text-zinc-400 text-xs leading-snug pl-0.5">{s.reasoning}</span>}
+            {s.reasoning && <span className={`text-zinc-400 ${textSize} leading-snug pl-0.5`}>{s.reasoning}</span>}
           </div>
         ))}
         {mentionOnly.length > 0 && (
@@ -196,10 +197,10 @@ function Recommendations({ tickers, tradeSignals, recommendations }) {
   }
 
   return (
-    <ul className="flex flex-col gap-1.5">
+    <ul className="flex flex-col gap-2">
       {recs.map((r, i) => (
-        <li key={i} className="flex gap-2 text-xs text-zinc-300">
-          <span className="flex-shrink-0 w-4 h-4 rounded-full bg-emerald-900/60 text-emerald-400 flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
+        <li key={i} className={`flex gap-2 ${textSize} text-zinc-300`}>
+          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-900/60 text-emerald-400 text-xs flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
           <span>{r}</span>
         </li>
       ))}
@@ -269,7 +270,7 @@ export default function SummarizePage({ onBack, onLogout }) {
           ← Back
         </button>
         <span className="text-zinc-700">|</span>
-        <span className="text-zinc-300 font-semibold">Video Brief</span>
+        <span className="text-zinc-300 font-semibold">Video In Brief</span>
         {onLogout && (
           <button
             onClick={onLogout}
@@ -281,11 +282,11 @@ export default function SummarizePage({ onBack, onLogout }) {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="w-full px-[5%] py-8">
 
           {/* URL input */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-zinc-100 mb-1">Video Brief</h1>
+            <h1 className="text-2xl font-bold text-zinc-100 mb-1">Video In Brief</h1>
             <p className="text-zinc-400 text-sm mb-5">
               Paste a YouTube URL to get an AI-generated summary in English.
             </p>
@@ -350,18 +351,16 @@ export default function SummarizePage({ onBack, onLogout }) {
 
               {/* Desktop: table layout */}
               <div className="hidden md:block rounded-xl border border-zinc-700 overflow-hidden">
-                <table className="w-full text-sm table-fixed">
+                <table className="w-full text-lg table-fixed">
                   <colgroup>
                     <col style={{ width: '17%' }} />
-                    <col style={{ width: '17%' }} />
-                    <col style={{ width: '35%' }} />
-                    <col style={{ width: '23%' }} />
+                    <col style={{ width: '44%' }} />
+                    <col style={{ width: '31%' }} />
                     <col style={{ width: '8%' }} />
                   </colgroup>
                   <thead>
                     <tr className="bg-zinc-800/80">
                       <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Video</th>
-                      <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">URL &amp; Date</th>
                       <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Summary</th>
                       <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Recommendations</th>
                       <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Remove</th>
@@ -376,27 +375,25 @@ export default function SummarizePage({ onBack, onLogout }) {
                           ) : (
                             <div className="w-full aspect-video bg-zinc-800 rounded-lg" />
                           )}
-                          <p className="mt-2 text-zinc-200 text-xs font-medium leading-snug line-clamp-2">{item.title}</p>
+                          <p className="mt-2 text-zinc-200 text-lg font-medium leading-snug line-clamp-2">{item.title}</p>
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 text-violet-400 text-sm hover:underline break-all leading-relaxed block">{item.url}</a>
+                          {item.created_at && <p className="mt-1 text-zinc-500 text-lg">Briefed {formatDate(item.created_at)}</p>}
                         </td>
-                        <td className="px-4 py-3">
-                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-violet-400 text-xs hover:underline break-all leading-relaxed">{item.url}</a>
-                          {item.created_at && <p className="mt-2 text-zinc-500 text-xs">Briefed {formatDate(item.created_at)}</p>}
-                        </td>
-                        <td className="px-4 py-3 text-zinc-300 text-xs leading-relaxed">
+                        <td className="px-4 py-3 text-zinc-300 text-lg leading-relaxed">
                           <p>{item.summary}</p>
                           {Array.isArray(item.keyPoints) && item.keyPoints.length > 0 && (
-                            <ul className="mt-3 space-y-1.5">
+                            <ul className="mt-3 space-y-2">
                               {item.keyPoints.map((pt, i) => (
                                 <li key={i} className="flex gap-2 text-zinc-400">
-                                  <span className="flex-shrink-0 w-4 h-4 rounded-full bg-violet-900/60 text-violet-400 text-xs flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
-                                  <span>{pt}</span>
+                                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-violet-900/60 text-violet-400 text-xs flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
+                                  <span className="text-lg">{pt}</span>
                                 </li>
                               ))}
                             </ul>
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <Recommendations tickers={item.tickers} tradeSignals={item.trade_signals} recommendations={item.recommendations} />
+                          <Recommendations tickers={item.tickers} tradeSignals={item.trade_signals} recommendations={item.recommendations} large />
                         </td>
                         <td className="px-4 py-3">
                           {confirmDeleteId === (item.id ?? idx) ? (
@@ -421,11 +418,11 @@ export default function SummarizePage({ onBack, onLogout }) {
               </div>
 
               {/* Mobile: card layout */}
-              <div className="md:hidden space-y-3">
+              <div className="md:hidden space-y-4">
                 {history.map((item, idx) => (
                   <div key={item.id ?? idx} className="bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden">
-                    <div className="flex gap-3 p-3">
-                      <div className="flex-shrink-0 w-24">
+                    <div className="flex gap-3 p-4">
+                      <div className="flex-shrink-0 w-32">
                         {item.thumbnail ? (
                           <img src={item.thumbnail} alt={item.title} className="w-full aspect-video object-cover rounded-lg" />
                         ) : (
@@ -433,34 +430,34 @@ export default function SummarizePage({ onBack, onLogout }) {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-zinc-100 text-sm font-medium leading-snug line-clamp-2">{item.title}</p>
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-violet-400 text-xs hover:underline mt-1 block truncate">{item.url}</a>
-                        {item.created_at && <p className="text-zinc-500 text-xs mt-1">Briefed {formatDate(item.created_at)}</p>}
+                        <p className="text-zinc-100 text-base font-medium leading-snug line-clamp-2">{item.title}</p>
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-violet-400 text-sm hover:underline mt-1.5 block truncate">{item.url}</a>
+                        {item.created_at && <p className="text-zinc-500 text-sm mt-1">Briefed {formatDate(item.created_at)}</p>}
                       </div>
                       <div className="flex-shrink-0 flex items-start pt-0.5">
                         {confirmDeleteId === (item.id ?? idx) ? (
-                          <div className="flex flex-col gap-1">
-                            <button onClick={() => handleDelete(item.id ?? idx)} className="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg transition-colors">Yes</button>
-                            <button onClick={() => setConfirmDeleteId(null)} className="bg-zinc-700 text-zinc-200 text-xs px-2 py-1 rounded-lg transition-colors">No</button>
+                          <div className="flex flex-col gap-1.5">
+                            <button onClick={() => handleDelete(item.id ?? idx)} className="bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-3 py-1.5 rounded-lg transition-colors">Yes</button>
+                            <button onClick={() => setConfirmDeleteId(null)} className="bg-zinc-700 text-zinc-200 text-sm px-3 py-1.5 rounded-lg transition-colors">No</button>
                           </div>
                         ) : (
                           <button
                             onClick={() => setConfirmDeleteId(item.id ?? idx)}
-                            className="bg-red-900/50 hover:bg-red-700 border border-red-700 text-red-300 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors"
+                            className="bg-red-900/50 hover:bg-red-700 border border-red-700 text-red-300 hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                           >
                             Remove
                           </button>
                         )}
                       </div>
                     </div>
-                    <div className="px-3 pb-3 text-zinc-300 text-xs leading-relaxed border-t border-zinc-800 pt-2.5">
+                    <div className="px-4 pb-4 text-zinc-300 text-base leading-relaxed border-t border-zinc-800 pt-3">
                       <p>{item.summary}</p>
                       {Array.isArray(item.keyPoints) && item.keyPoints.length > 0 && (
-                        <ul className="mt-2 space-y-1">
+                        <ul className="mt-3 space-y-2">
                           {item.keyPoints.map((pt, i) => (
                             <li key={i} className="flex gap-2 text-zinc-400">
-                              <span className="flex-shrink-0 text-violet-400 font-medium">{i + 1}.</span>
-                              <span>{pt}</span>
+                              <span className="flex-shrink-0 text-violet-400 font-medium text-base">{i + 1}.</span>
+                              <span className="text-base">{pt}</span>
                             </li>
                           ))}
                         </ul>

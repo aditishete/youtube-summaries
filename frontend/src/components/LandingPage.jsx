@@ -6,7 +6,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
       {/* Top bar */}
       <header className="flex items-center justify-between px-4 md:px-8 py-4 md:py-5 border-b border-zinc-800">
         <div className="flex items-center gap-2">
-          <span className="text-xl font-bold text-zinc-100">MarketBrief</span>
+          <span className="text-xl font-bold text-zinc-100">InBrief</span>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-zinc-400">
@@ -29,14 +29,14 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
         </p>
 
         <div className={`grid grid-cols-1 gap-6 w-full max-w-3xl ${currentUser?.role === 'admin' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
-          {/* Card 1 — Market Feed */}
+          {/* Card 1 — Market Brief */}
           <button
             onClick={() => onNavigate('dashboard')}
             className="group text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-blue-500 rounded-2xl p-8 transition-all duration-200 shadow-lg hover:shadow-blue-900/20"
           >
             <div className="text-4xl mb-5">📈</div>
             <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-blue-400 transition-colors">
-              Market Feed
+              Market Brief
             </h2>
             <p className="text-zinc-400 text-sm leading-relaxed mb-6">
               Track YouTube investment channels. Get AI-generated summaries, ticker mentions, and
@@ -47,14 +47,14 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
             </span>
           </button>
 
-          {/* Card 2 — Video Brief */}
+          {/* Card 2 — Video In Brief */}
           <button
             onClick={() => onNavigate('summarize')}
             className="group text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-violet-500 rounded-2xl p-8 transition-all duration-200 shadow-lg hover:shadow-violet-900/20"
           >
             <div className="text-4xl mb-5">▶️</div>
             <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-violet-400 transition-colors">
-              Video Brief
+              Video In Brief
             </h2>
             <p className="text-zinc-400 text-sm leading-relaxed mb-6">
               Paste any YouTube URL and get an instant AI summary of the main points — in English,
