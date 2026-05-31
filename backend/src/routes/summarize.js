@@ -50,7 +50,7 @@ router.post('/', requireAuth, async (req, res) => {
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 2048,
       system: [
         {
           type: 'text',
@@ -90,12 +90,17 @@ Rules:
     });
 
     const text = response.content?.[0]?.text || '';
-    const cleaned = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    // Extract the JSON object robustly — find the first { and last }
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    const cleaned = start !== -1 && end !== -1 ? text.slice(start, end + 1) : text.trim();
 
     let parsed;
     try {
       parsed = JSON.parse(cleaned);
     } catch {
+      console.error('Failed to parse AI response. Raw text:', text.slice(0, 500));
       return res.status(500).json({ error: 'Failed to parse AI response.' });
     }
 
