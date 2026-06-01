@@ -162,6 +162,16 @@ export const reanalyzeVideo = async (id) => {
   return data;
 };
 
+export const trackPageView = async (page) => {
+  try {
+    await apiFetch(`${BASE}/analytics/pageview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page }),
+    });
+  } catch {}
+};
+
 export const getAnalytics = async () => {
   const res = await apiFetch(`${BASE}/analytics`);
   const data = await safeJSON(res);

@@ -12,9 +12,13 @@ function StatCard({ label, value, sub }) {
 }
 
 function GroupCard({ label, color, today, week, month }) {
-  const border = color === 'blue' ? 'border-blue-500/40' : 'border-violet-500/40';
-  const heading = color === 'blue' ? 'text-blue-300' : 'text-violet-300';
-  const val = color === 'blue' ? 'text-blue-100' : 'text-violet-100';
+  const colors = {
+    blue:   { border: 'border-blue-500/40',   heading: 'text-blue-300',   val: 'text-blue-100'   },
+    violet: { border: 'border-violet-500/40', heading: 'text-violet-300', val: 'text-violet-100' },
+    emerald:{ border: 'border-emerald-500/40',heading: 'text-emerald-300',val: 'text-emerald-100' },
+    amber:  { border: 'border-amber-500/40',  heading: 'text-amber-300',  val: 'text-amber-100'  },
+  };
+  const { border, heading, val } = colors[color] || colors.blue;
   return (
     <div className={`bg-zinc-900 border ${border} rounded-xl p-5`}>
       <p className={`text-xs font-semibold uppercase tracking-wide mb-4 ${heading}`}>{label}</p>
@@ -95,33 +99,47 @@ export default function AnalyticsPage({ onBack, onLogout }) {
             {/* Top summary row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <StatCard label="Unique Visitors Today" value={data.unique_visitors_today} sub="distinct users" />
+              <StatCard label="Logins Today" value={data.logins_today} sub="successful logins" />
               <StatCard label="Total Users" value={data.total_users} sub="registered accounts" />
               <StatCard label="Briefs This Month" value={data.briefs_this_month} sub="video in briefs generated" />
-              <StatCard label="Video Requests Today" value={data.video_requests_today} sub="feed loads today" />
             </div>
 
-            {/* Activity breakdown */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Logins + Page views breakdown */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <GroupCard
-                label="Market Brief Page Visits"
-                color="blue"
-                today={data.page_visits_today}
-                week={data.page_visits_week}
-                month={data.page_visits_month}
+                label="Logins"
+                color="amber"
+                today={data.logins_today}
+                week={data.logins_week}
+                month={data.logins_month}
               />
               <GroupCard
-                label="Market Brief Requests"
+                label="Landing Visits"
+                color="blue"
+                today={data.landing_views?.today}
+                week={data.landing_views?.week}
+                month={data.landing_views?.month}
+              />
+              <GroupCard
+                label="Market Brief Visits"
                 color="violet"
-                today={data.video_requests_today}
-                week={data.video_requests_week}
-                month={data.video_requests_month}
+                today={data.market_brief_views?.today}
+                week={data.market_brief_views?.week}
+                month={data.market_brief_views?.month}
+              />
+              <GroupCard
+                label="Video Brief Visits"
+                color="emerald"
+                today={data.video_in_brief_views?.today}
+                week={data.video_in_brief_views?.week}
+                month={data.video_in_brief_views?.month}
               />
             </div>
 
             {/* User table */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-zinc-800 flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-zinc-100">Top Users by Activity</h2>
+                <h2 className="text-sm font-semibold text-zinc-100">Users by Activity</h2>
                 <span className="text-xs text-zinc-500 font-mono">up to 25</span>
               </div>
 
@@ -131,32 +149,43 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                     <tr>
                       <Th>#</Th>
                       <Th>User</Th>
-                      <Th right>Total</Th>
-                      <Th right>/Day</Th>
+                      {/* Logins */}
                       <Th right>Today</Th>
                       <Th right>Week</Th>
                       <Th right>Month</Th>
-                      <Th right>Total</Th>
-                      <Th right>/Day</Th>
+                      {/* Landing */}
                       <Th right>Today</Th>
                       <Th right>Week</Th>
                       <Th right>Month</Th>
-                      <Th right>Total</Th>
-                      <Th right>/Day</Th>
+                      {/* Market Brief */}
+                      <Th right>Today</Th>
+                      <Th right>Week</Th>
+                      <Th right>Month</Th>
+                      {/* Video In Brief */}
+                      <Th right>Today</Th>
+                      <Th right>Week</Th>
+                      <Th right>Month</Th>
+                      {/* Briefs generated */}
                       <Th right>Today</Th>
                       <Th right>Week</Th>
                       <Th right>Month</Th>
                     </tr>
                     <tr>
                       <td colSpan={2} />
-                      <td colSpan={5} className="px-3 pb-1.5 text-xs text-blue-400/70 font-medium uppercase tracking-wide">
-                        ── Page Visits ───────────────
+                      <td colSpan={3} className="px-3 pb-1.5 text-xs text-amber-400/70 font-medium uppercase tracking-wide whitespace-nowrap">
+                        ── Logins ────────────
                       </td>
-                      <td colSpan={5} className="px-3 pb-1.5 text-xs text-violet-400/70 font-medium uppercase tracking-wide">
-                        ── Market Brief Requests ──────
+                      <td colSpan={3} className="px-3 pb-1.5 text-xs text-blue-400/70 font-medium uppercase tracking-wide whitespace-nowrap">
+                        ── Landing Visits ────
                       </td>
-                      <td colSpan={5} className="px-3 pb-1.5 text-xs text-emerald-400/70 font-medium uppercase tracking-wide">
-                        ── Video In Briefs ───────────
+                      <td colSpan={3} className="px-3 pb-1.5 text-xs text-violet-400/70 font-medium uppercase tracking-wide whitespace-nowrap">
+                        ── Market Brief Visits
+                      </td>
+                      <td colSpan={3} className="px-3 pb-1.5 text-xs text-emerald-400/70 font-medium uppercase tracking-wide whitespace-nowrap">
+                        ── Video Brief Visits─
+                      </td>
+                      <td colSpan={3} className="px-3 pb-1.5 text-xs text-zinc-400/70 font-medium uppercase tracking-wide whitespace-nowrap">
+                        ── Video Briefs Requested
                       </td>
                     </tr>
                   </thead>
@@ -172,18 +201,23 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                             }`}>{u.role}</span>
                           </div>
                         </Td>
-                        <Td right>{fmt(u.total_visits)}</Td>
-                        <Td right muted>{u.visits_per_day}</Td>
-                        <Td right>{fmt(u.visits_today)}</Td>
-                        <Td right muted>{fmt(u.visits_week)}</Td>
-                        <Td right muted>{fmt(u.visits_month)}</Td>
-                        <Td right>{fmt(u.total_video_requests)}</Td>
-                        <Td right muted>{u.video_requests_per_day}</Td>
-                        <Td right>{fmt(u.video_requests_today)}</Td>
-                        <Td right muted>{fmt(u.video_requests_week)}</Td>
-                        <Td right muted>{fmt(u.video_requests_month)}</Td>
-                        <Td right>{fmt(u.total_briefs)}</Td>
-                        <Td right muted>{u.briefs_per_day}</Td>
+                        {/* Logins */}
+                        <Td right>{fmt(u.logins_today)}</Td>
+                        <Td right muted>{fmt(u.logins_week)}</Td>
+                        <Td right muted>{fmt(u.logins_month)}</Td>
+                        {/* Landing */}
+                        <Td right>{fmt(u.landing_today)}</Td>
+                        <Td right muted>{fmt(u.landing_week)}</Td>
+                        <Td right muted>{fmt(u.landing_month)}</Td>
+                        {/* Market Brief */}
+                        <Td right>{fmt(u.market_today)}</Td>
+                        <Td right muted>{fmt(u.market_week)}</Td>
+                        <Td right muted>{fmt(u.market_month)}</Td>
+                        {/* Video In Brief */}
+                        <Td right>{fmt(u.vib_today)}</Td>
+                        <Td right muted>{fmt(u.vib_week)}</Td>
+                        <Td right muted>{fmt(u.vib_month)}</Td>
+                        {/* Briefs generated */}
                         <Td right>{fmt(u.briefs_today)}</Td>
                         <Td right muted>{fmt(u.briefs_week)}</Td>
                         <Td right muted>{fmt(u.briefs_month)}</Td>

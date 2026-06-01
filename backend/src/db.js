@@ -154,6 +154,25 @@ try { db.exec('ALTER TABLE user_summaries ADD COLUMN tickers TEXT DEFAULT \'[]\'
 try { db.exec('ALTER TABLE user_summaries ADD COLUMN trade_signals TEXT DEFAULT \'[]\''); } catch (_) {}
 try { db.exec('ALTER TABLE user_summaries ADD COLUMN recommendations TEXT DEFAULT \'[]\''); } catch (_) {}
 
+// Create user_logins table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_logins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    logged_in_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Create user_page_views table (per-page navigation tracking)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_page_views (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    page TEXT NOT NULL,
+    viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Close DB cleanly so node --watch restarts don't hit "database is locked"
 function closeDb() {
   try { _db.close(); } catch (_) {}

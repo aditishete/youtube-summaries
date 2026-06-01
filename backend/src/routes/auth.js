@@ -35,6 +35,7 @@ router.post('/login', async (req, res) => {
     }
 
     const token = signToken(user);
+    db.prepare('INSERT INTO user_logins (user_id) VALUES (?)').run(user.id);
     return res.json({
       token,
       user: { id: user.id, username: user.username, role: user.role },

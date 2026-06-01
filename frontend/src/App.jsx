@@ -7,7 +7,7 @@ import RegisterPage from './components/RegisterPage.jsx';
 import LandingPage from './components/LandingPage.jsx';
 import SummarizePage from './components/SummarizePage.jsx';
 import AnalyticsPage from './components/AnalyticsPage.jsx';
-import { getChannels, getVideos, addChannel, deleteChannel, refreshChannel, getMe } from './api.js';
+import { getChannels, getVideos, addChannel, deleteChannel, refreshChannel, getMe, trackPageView } from './api.js';
 
 export default function App() {
   // ── Auth state ──────────────────────────────────────────────────────────────
@@ -74,7 +74,11 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('appPage', appPage);
-  }, [appPage]);
+    if (authStatus === 'authenticated') {
+      const pageMap = { landing: 'landing', dashboard: 'market_brief', summarize: 'video_in_brief' };
+      if (pageMap[appPage]) trackPageView(pageMap[appPage]);
+    }
+  }, [appPage, authStatus]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
