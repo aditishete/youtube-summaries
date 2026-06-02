@@ -73,6 +73,7 @@ router.post('/register', async (req, res) => {
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
     const token = signToken(user);
+    db.prepare('INSERT INTO user_logins (user_id) VALUES (?)').run(user.id);
 
     return res.status(201).json({
       token,
