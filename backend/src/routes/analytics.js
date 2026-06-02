@@ -26,6 +26,52 @@ router.post('/pageview', requireAuth, (req, res) => {
   res.status(204).end();
 });
 
+// GET /api/analytics/timeseries?period=today|week|month
+router.get('/timeseries', requireAdmin, (req, res) => {
+  const period = req.query.period || 'week';
+
+  let bucketFn, since, labelFmt;
+  if (period === 'today') {
+    bucketFn = "strftime('%H:00', %col%)";
+    since = "datetime('now', '-1 day')";
+    labelFmt = 'hour';
+  } else if (period === 'month') {
+    bucketFn = "date(%col%)";
+    since = "datetime('now', '-30 days')";
+    labelFmt = 'day';
+  } else {
+    bucketFn = "date(%col%)";
+    since = "datetime('now', '-7 days')";
+    labelFmt = 'day';
+  }
+
+  function bucket(table, col) {
+    const fn = bucketFn.replace(/%col%/g, col);
+    return db._db.all(
+      `SELECT ${fn} as t, count(*) as n FROM ${table} WHERE ${col} >= ${since} GROUP BY t ORDER BY t`
+    );
+  }
+
+  function bucketPage(page) {
+    const fn = bucketFn.replace(/%col%/g, 'viewed_at');
+    return db._db.all(
+      `SELECT ${fn} as t, count(*) as n FROM user_page_views WHERE page = ? AND viewed_at >= ${since} GROUP BY t ORDER BY t`,
+      [page]
+    );
+  }
+
+  res.json({
+    period,
+    labelFmt,
+    market_brief_requests: bucket('user_video_requests', 'requested_at'),
+    logins: bucket('user_logins', 'logged_in_at'),
+    briefs_generated: bucket('user_summaries', 'created_at'),
+    landing_views: bucketPage('landing'),
+    market_brief_views: bucketPage('market_brief'),
+    video_in_brief_views: bucketPage('video_in_brief'),
+  });
+});
+
 router.get('/', requireAdmin, (req, res) => {
   const totalUsers = db.prepare('SELECT count(*) as c FROM users').get().c;
 

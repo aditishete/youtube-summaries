@@ -1,5 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { getAnalytics } from '../api.js';
+import React, { useEffect, useState, useCallback } from 'react';
+import { getAnalytics, getAnalyticsTimeseries } from '../api.js';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
 
 function StatCard({ label, value, sub }) {
   return (
@@ -54,15 +57,43 @@ function fmt(n) {
   return n == null ? '—' : n;
 }
 
+const SERIES = [
+  { key: 'market_brief_requests', label: 'Market Brief Requests', color: '#818cf8' },
+  { key: 'market_brief_views',    label: 'Market Brief Visits',   color: '#60a5fa' },
+  { key: 'video_in_brief_views',  label: 'Video Brief Visits',    color: '#34d399' },
+  { key: 'briefs_generated',      label: 'Briefs Generated',      color: '#a78bfa' },
+  { key: 'logins',                label: 'Logins',                color: '#fbbf24' },
+  { key: 'landing_views',         label: 'Landing Visits',        color: '#f472b6' },
+];
+
+function mergeTimeseries(ts) {
+  const map = {};
+  for (const { key } of SERIES) {
+    for (const { t, n } of (ts[key] || [])) {
+      if (!map[t]) map[t] = { t };
+      map[t][key] = n;
+    }
+  }
+  return Object.values(map).sort((a, b) => a.t.localeCompare(b.t));
+}
+
 export default function AnalyticsPage({ onBack, onLogout }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [period, setPeriod] = useState('week');
+  const [ts, setTs] = useState(null);
 
   useEffect(() => {
     getAnalytics()
       .then(setData)
       .catch((e) => setError(e.message));
   }, []);
+
+  useEffect(() => {
+    getAnalyticsTimeseries(period)
+      .then(setTs)
+      .catch(() => {});
+  }, [period]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -134,6 +165,58 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                 week={data.video_in_brief_views?.week}
                 month={data.video_in_brief_views?.month}
               />
+            </div>
+
+            {/* Activity chart */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-sm font-semibold text-zinc-100">Activity Over Time</h2>
+                <div className="flex gap-1">
+                  {['today', 'week', 'month'].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPeriod(p)}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                        period === p
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                      }`}
+                    >
+                      {p === 'today' ? 'Today' : p === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {ts ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={mergeTimeseries(ts)} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <XAxis dataKey="t" tick={{ fill: '#71717a', fontSize: 11 }} tickLine={false} />
+                    <YAxis tick={{ fill: '#71717a', fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12 }}
+                      labelStyle={{ color: '#a1a1aa' }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12, color: '#a1a1aa' }} />
+                    {SERIES.map(({ key, label, color }) => (
+                      <Line
+                        key={key}
+                        type="monotone"
+                        dataKey={key}
+                        name={label}
+                        stroke={color}
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="w-6 h-6 border-2 border-zinc-700 border-t-blue-500 rounded-full animate-spin" />
+                </div>
+              )}
             </div>
 
             {/* User table */}

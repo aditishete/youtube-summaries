@@ -172,6 +172,13 @@ export const trackPageView = async (page) => {
   } catch {}
 };
 
+export const getAnalyticsTimeseries = async (period) => {
+  const res = await apiFetch(`${BASE}/analytics/timeseries?period=${period}`);
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch timeseries');
+  return data;
+};
+
 export const getAnalytics = async () => {
   const res = await apiFetch(`${BASE}/analytics`);
   const data = await safeJSON(res);
