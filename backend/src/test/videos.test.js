@@ -74,4 +74,47 @@ describe('GET /api/videos', () => {
     expect(res.body.videos).toHaveLength(2);
     expect(res.body.total).toBe(5);
   });
+
+  it('records a user_video_request on normal fetch', async () => {
+    const token = await getToken('viewer', 'viewerpass');
+    await request(app).get('/api/videos').set('Authorization', `Bearer ${token}`);
+
+    const user = db.prepare('SELECT id FROM users WHERE username = ?').get('viewer');
+    const count = db.prepare('SELECT count(*) as c FROM user_video_requests WHERE user_id = ?').get(user.id).c;
+    expect(count).toBe(1);
+  });
+
+  it('does not record a user_video_request when auto=1', async () => {
+    const token = await getToken('viewer', 'viewerpass');
+    await request(app).get('/api/videos?auto=1').set('Authorization', `Bearer ${token}`);
+
+    const user = db.prepare('SELECT id FROM users WHERE username = ?').get('viewer');
+    const count = db.prepare('SELECT count(*) as c FROM user_video_requests WHERE user_id = ?').get(user.id).c;
+    expect(count).toBe(0);
+  });
+});
+
+describe('DELETE /api/videos/:id', () => {
+  it('returns 401 without a token', async () => {
+    const res = await request(app).delete('/api/videos/1');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 for non-existent video', async () => {
+    const token = await getToken('viewer', 'viewerpass');
+    const res = await request(app).delete('/api/videos/9999').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('deletes an existing video', async () => {
+    const channel = insertChannel();
+    const video = insertVideo(channel.id, 'vid001', 'To Delete');
+
+    const token = await getToken('viewer', 'viewerpass');
+    const res = await request(app).delete(`/api/videos/${video.id}`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(204);
+
+    const check = db.prepare('SELECT id FROM videos WHERE id = ?').get(video.id);
+    expect(check).toBeNull();
+  });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
-import { app, resetDB, seedUsers, getToken } from './helpers.js';
+import { app, resetDB, seedUsers, getToken, db } from './helpers.js';
 
 vi.mock('../transcript.js', () => ({
   fetchTranscript: vi.fn().mockResolvedValue('This is a test transcript.'),
@@ -9,7 +9,15 @@ vi.mock('../transcript.js', () => ({
 // Mock the Anthropic SDK used directly in summarize.js
 vi.mock('@anthropic-ai/sdk', () => {
   const mockCreate = vi.fn().mockResolvedValue({
-    content: [{ text: '{"summary":"Test summary.","keyPoints":["Point 1","Point 2"]}' }],
+    content: [{
+      text: JSON.stringify({
+        summary: 'Test summary.',
+        keyPoints: ['Point 1', 'Point 2'],
+        tickers: ['AAPL'],
+        trade_signals: [{ ticker: 'AAPL', signal: 'BUY', reasoning: 'Strong momentum' }],
+        recommendations: [],
+      }),
+    }],
   });
   return {
     default: vi.fn().mockImplementation(() => ({
@@ -17,6 +25,13 @@ vi.mock('@anthropic-ai/sdk', () => {
     })),
   };
 });
+
+// Mock fetch so summarize.js doesn't make real HTTP calls for video metadata
+vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+  ok: true,
+  json: async () => ({ title: 'Test Video', thumbnail_url: 'https://example.com/thumb.jpg' }),
+  text: async () => '"publishDate":"2024-01-15"',
+}));
 
 beforeEach(async () => {
   resetDB();
@@ -73,6 +88,30 @@ describe('POST /api/summarize', () => {
     expect(res.body.videoId).toBe('dQw4w9WgXcQ');
   });
 
+  it('returns tickers and trade_signals in response', async () => {
+    const token = await getToken('viewer', 'viewerpass');
+    const res = await request(app)
+      .post('/api/summarize')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.tickers)).toBe(true);
+    expect(Array.isArray(res.body.trade_signals)).toBe(true);
+    expect(Array.isArray(res.body.recommendations)).toBe(true);
+    expect(res.body.tickers).toContain('AAPL');
+    expect(res.body.trade_signals[0].signal).toBe('BUY');
+  });
+
+  it('returns published_at in response', async () => {
+    const token = await getToken('viewer', 'viewerpass');
+    const res = await request(app)
+      .post('/api/summarize')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('published_at');
+  });
+
   it('saves summary to history', async () => {
     const token = await getToken('viewer', 'viewerpass');
     await request(app)
@@ -86,5 +125,78 @@ describe('POST /api/summarize', () => {
     expect(histRes.status).toBe(200);
     expect(histRes.body.history).toHaveLength(1);
     expect(histRes.body.history[0].summary).toBe('Test summary.');
+  });
+
+  it('history entries include tickers and trade_signals', async () => {
+    const token = await getToken('viewer', 'viewerpass');
+    await request(app)
+      .post('/api/summarize')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+
+    const histRes = await request(app)
+      .get('/api/summarize/history')
+      .set('Authorization', `Bearer ${token}`);
+    const entry = histRes.body.history[0];
+    expect(Array.isArray(entry.tickers)).toBe(true);
+    expect(Array.isArray(entry.trade_signals)).toBe(true);
+    expect(Array.isArray(entry.recommendations)).toBe(true);
+  });
+});
+
+describe('DELETE /api/summarize/history/:id', () => {
+  it('returns 401 without a token', async () => {
+    const res = await request(app).delete('/api/summarize/history/1');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 for non-existent history entry', async () => {
+    const token = await getToken('viewer', 'viewerpass');
+    const res = await request(app)
+      .delete('/api/summarize/history/9999')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('deletes an existing history entry', async () => {
+    const token = await getToken('viewer', 'viewerpass');
+    await request(app)
+      .post('/api/summarize')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+
+    const histRes = await request(app)
+      .get('/api/summarize/history')
+      .set('Authorization', `Bearer ${token}`);
+    const entryId = histRes.body.history[0].id;
+
+    const delRes = await request(app)
+      .delete(`/api/summarize/history/${entryId}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(delRes.status).toBe(204);
+
+    const afterRes = await request(app)
+      .get('/api/summarize/history')
+      .set('Authorization', `Bearer ${token}`);
+    expect(afterRes.body.history).toHaveLength(0);
+  });
+
+  it('cannot delete another user\'s history entry', async () => {
+    const viewerToken = await getToken('viewer', 'viewerpass');
+    await request(app)
+      .post('/api/summarize')
+      .set('Authorization', `Bearer ${viewerToken}`)
+      .send({ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+
+    const histRes = await request(app)
+      .get('/api/summarize/history')
+      .set('Authorization', `Bearer ${viewerToken}`);
+    const entryId = histRes.body.history[0].id;
+
+    const adminToken = await getToken('admin', 'adminpass');
+    const delRes = await request(app)
+      .delete(`/api/summarize/history/${entryId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(delRes.status).toBe(404);
   });
 });

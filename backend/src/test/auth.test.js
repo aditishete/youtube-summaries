@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
-import { app, resetDB, seedUsers } from './helpers.js';
+import { app, resetDB, seedUsers, db } from './helpers.js';
 
 beforeEach(async () => {
   resetDB();
@@ -14,6 +14,14 @@ describe('POST /api/auth/register', () => {
     expect(res.body.token).toBeTruthy();
     expect(res.body.user.username).toBe('newuser');
     expect(res.body.user.role).toBe('viewer');
+  });
+
+  it('records a login entry on registration', async () => {
+    const res = await request(app).post('/api/auth/register').send({ username: 'newuser', password: 'password123' });
+    expect(res.status).toBe(201);
+    const userId = res.body.user.id;
+    const logins = db.prepare('SELECT count(*) as c FROM user_logins WHERE user_id = ?').get(userId).c;
+    expect(logins).toBe(1);
   });
 
   it('rejects a duplicate username', async () => {
@@ -38,6 +46,21 @@ describe('POST /api/auth/login', () => {
     expect(res.status).toBe(200);
     expect(res.body.token).toBeTruthy();
     expect(res.body.user.role).toBe('admin');
+  });
+
+  it('records a login entry on successful login', async () => {
+    const res = await request(app).post('/api/auth/login').send({ username: 'viewer', password: 'viewerpass' });
+    expect(res.status).toBe(200);
+    const userId = res.body.user.id;
+    const logins = db.prepare('SELECT count(*) as c FROM user_logins WHERE user_id = ?').get(userId).c;
+    expect(logins).toBe(1);
+  });
+
+  it('does not record a login entry on failed login', async () => {
+    await request(app).post('/api/auth/login').send({ username: 'viewer', password: 'wrongpass' });
+    const user = db.prepare('SELECT id FROM users WHERE username = ?').get('viewer');
+    const logins = db.prepare('SELECT count(*) as c FROM user_logins WHERE user_id = ?').get(user.id).c;
+    expect(logins).toBe(0);
   });
 
   it('rejects wrong password', async () => {
