@@ -153,6 +153,7 @@ db.exec(`
 try { db.exec('ALTER TABLE user_summaries ADD COLUMN tickers TEXT DEFAULT \'[]\''); } catch (_) {}
 try { db.exec('ALTER TABLE user_summaries ADD COLUMN trade_signals TEXT DEFAULT \'[]\''); } catch (_) {}
 try { db.exec('ALTER TABLE user_summaries ADD COLUMN recommendations TEXT DEFAULT \'[]\''); } catch (_) {}
+try { db.exec('ALTER TABLE user_summaries ADD COLUMN published_at TEXT'); } catch (_) {}
 
 // Create user_logins table
 db.exec(`

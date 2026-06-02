@@ -377,7 +377,8 @@ export default function SummarizePage({ onBack, onLogout }) {
                           )}
                           <p className="mt-2 text-zinc-200 text-lg font-medium leading-snug line-clamp-2">{item.title}</p>
                           <a href={item.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 text-violet-400 text-sm hover:underline break-all leading-relaxed block">{item.url}</a>
-                          {item.created_at && <p className="mt-1 text-zinc-500 text-lg">Briefed {formatDate(item.created_at)}</p>}
+                          {item.published_at && <p className="mt-1 text-zinc-500 text-sm">Posted {formatDate(item.published_at)}</p>}
+                          {item.created_at && <p className="mt-0.5 text-zinc-600 text-sm">Briefed {formatDate(item.created_at)}</p>}
                         </td>
                         <td className="px-4 py-3 text-zinc-300 text-lg leading-relaxed">
                           <p>{item.summary}</p>
@@ -432,7 +433,8 @@ export default function SummarizePage({ onBack, onLogout }) {
                       <div className="flex-1 min-w-0">
                         <p className="text-zinc-100 text-base font-medium leading-snug line-clamp-2">{item.title}</p>
                         <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-violet-400 text-sm hover:underline mt-1.5 block truncate">{item.url}</a>
-                        {item.created_at && <p className="text-zinc-500 text-sm mt-1">Briefed {formatDate(item.created_at)}</p>}
+                        {item.published_at && <p className="text-zinc-500 text-sm mt-1">Posted {formatDate(item.published_at)}</p>}
+                        {item.created_at && <p className="text-zinc-600 text-sm mt-0.5">Briefed {formatDate(item.created_at)}</p>}
                       </div>
                       <div className="flex-shrink-0 flex items-start pt-0.5">
                         {confirmDeleteId === (item.id ?? idx) ? (

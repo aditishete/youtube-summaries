@@ -26,11 +26,24 @@ async function fetchVideoMeta(videoId) {
     const res = await fetch(
       `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
     );
-    if (!res.ok) return { title: '', thumbnail: '' };
+    if (!res.ok) return { title: '', thumbnail: '', published_at: null };
     const data = await res.json();
-    return { title: data.title || '', thumbnail: data.thumbnail_url || '' };
+    return { title: data.title || '', thumbnail: data.thumbnail_url || '', published_at: null };
   } catch {
-    return { title: '', thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` };
+    return { title: '', thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`, published_at: null };
+  }
+}
+
+async function fetchVideoPublishedAt(videoId) {
+  try {
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: { 'Accept-Language': 'en-US', 'User-Agent': 'Mozilla/5.0' },
+    });
+    const html = await res.text();
+    const match = html.match(/"publishDate"\s*:\s*"([^"]+)"/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
   }
 }
 
@@ -45,7 +58,10 @@ router.post('/', requireAuth, async (req, res) => {
   const transcript = await fetchTranscript(videoId);
   if (!transcript) return res.status(422).json({ error: 'No transcript available for this video. It may be private, age-restricted, or have captions disabled.' });
 
-  const { title, thumbnail } = await fetchVideoMeta(videoId);
+  const [{ title, thumbnail }, published_at] = await Promise.all([
+    fetchVideoMeta(videoId),
+    fetchVideoPublishedAt(videoId),
+  ]);
 
   try {
     const response = await client.messages.create({
@@ -109,6 +125,7 @@ Rules:
       title,
       thumbnail: thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
       url: `https://www.youtube.com/watch?v=${videoId}`,
+      published_at: published_at || null,
       summary: parsed.summary || '',
       keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints : [],
       tickers: Array.isArray(parsed.tickers) ? parsed.tickers : [],
@@ -118,9 +135,9 @@ Rules:
 
     // Save to history and prune to last 20 for this user
     db.prepare(`
-      INSERT INTO user_summaries (user_id, youtube_id, title, thumbnail, url, summary, key_points, tickers, trade_signals, recommendations)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(req.user.id, result.videoId, result.title, result.thumbnail, result.url, result.summary, JSON.stringify(result.keyPoints), JSON.stringify(result.tickers), JSON.stringify(result.trade_signals), JSON.stringify(result.recommendations));
+      INSERT INTO user_summaries (user_id, youtube_id, title, thumbnail, url, published_at, summary, key_points, tickers, trade_signals, recommendations)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(req.user.id, result.videoId, result.title, result.thumbnail, result.url, result.published_at, result.summary, JSON.stringify(result.keyPoints), JSON.stringify(result.tickers), JSON.stringify(result.trade_signals), JSON.stringify(result.recommendations));
 
     db.prepare(`
       DELETE FROM user_summaries
@@ -151,6 +168,7 @@ router.get('/history', requireAuth, (req, res) => {
     tickers: (() => { try { return JSON.parse(r.tickers || '[]'); } catch { return []; } })(),
     trade_signals: (() => { try { return JSON.parse(r.trade_signals || '[]'); } catch { return []; } })(),
     recommendations: (() => { try { return JSON.parse(r.recommendations || '[]'); } catch { return []; } })(),
+    published_at: r.published_at || null,
   }));
 
   res.json({ history });

@@ -111,11 +111,11 @@ export default function App() {
     }
   }, []);
 
-  const loadVideos = useCallback(async (channelId = null) => {
+  const loadVideos = useCallback(async (channelId = null, auto = false) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getVideos(channelId);
+      const data = await getVideos(channelId, 50, 0, auto);
       setVideos(data.videos || []);
     } catch (err) {
       console.error('Failed to load videos:', err);
@@ -140,13 +140,13 @@ export default function App() {
     }
   }, [selectedChannelId, loadVideos, authStatus]);
 
-  // Auto-refresh every 5 minutes while on the dashboard
+  // Auto-refresh every 15 minutes while on the dashboard (auto=true skips request tracking)
   useEffect(() => {
     if (authStatus !== 'authenticated' || appPage !== 'dashboard') return;
     const id = setInterval(() => {
       loadChannels();
-      loadVideos(selectedChannelId);
-    }, 5 * 60 * 1000);
+      loadVideos(selectedChannelId, true);
+    }, 15 * 60 * 1000);
     return () => clearInterval(id);
   }, [authStatus, appPage, selectedChannelId, loadChannels, loadVideos]);
 

@@ -110,9 +110,10 @@ export const refreshChannel = async (id) => {
 
 // ── Videos API ────────────────────────────────────────────────────────────────
 
-export const getVideos = async (channelId = null, limit = 50, offset = 0) => {
+export const getVideos = async (channelId = null, limit = 50, offset = 0, auto = false) => {
   const params = new URLSearchParams({ limit, offset });
   if (channelId) params.set('channel_id', channelId);
+  if (auto) params.set('auto', '1');
   const res = await apiFetch(`${BASE}/videos?${params}`);
   const data = await safeJSON(res);
   if (!res.ok) throw new Error(data.error || 'Failed to fetch videos');
