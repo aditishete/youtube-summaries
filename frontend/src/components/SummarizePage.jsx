@@ -240,6 +240,7 @@ export default function SummarizePage({ onBack, onLogout }) {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const { speakingId, speak } = useSpeech();
 
   useEffect(() => {
@@ -250,12 +251,14 @@ export default function SummarizePage({ onBack, onLogout }) {
   }, []);
 
   async function handleDelete(id) {
+    setDeleteError(null);
     try {
       await deleteSummaryItem(id);
       setHistory((prev) => prev.filter((item) => item.id !== id));
+      setConfirmDeleteId(null);
     } catch (err) {
       console.error('Delete failed:', err);
-    } finally {
+      setDeleteError('Failed to remove item. Please try again.');
       setConfirmDeleteId(null);
     }
   }
@@ -374,6 +377,12 @@ export default function SummarizePage({ onBack, onLogout }) {
                   </button>
                 </div>
               </div>
+
+              {deleteError && (
+                <div className="mb-3 bg-red-900/30 border border-red-700 rounded-xl px-4 py-3">
+                  <p className="text-red-300 text-sm">{deleteError}</p>
+                </div>
+              )}
 
               {/* Desktop: table layout */}
               <div className="hidden md:block rounded-xl border border-zinc-700 overflow-hidden">

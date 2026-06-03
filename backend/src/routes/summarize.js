@@ -134,7 +134,7 @@ Rules:
     };
 
     // Save to history and prune to last 20 for this user
-    db.prepare(`
+    const { lastInsertRowid } = db.prepare(`
       INSERT INTO user_summaries (user_id, youtube_id, title, thumbnail, url, published_at, summary, key_points, tickers, trade_signals, recommendations)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(req.user.id, result.videoId, result.title, result.thumbnail, result.url, result.published_at, result.summary, JSON.stringify(result.keyPoints), JSON.stringify(result.tickers), JSON.stringify(result.trade_signals), JSON.stringify(result.recommendations));
@@ -146,7 +146,7 @@ Rules:
       )
     `).run(req.user.id, req.user.id);
 
-    res.json(result);
+    res.json({ ...result, id: lastInsertRowid });
   } catch (err) {
     console.error('Summarize error:', err.message);
     res.status(500).json({ error: 'AI summarization failed.' });
