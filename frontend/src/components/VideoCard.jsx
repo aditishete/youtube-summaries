@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import SignalBadge from './SignalBadge.jsx';
 import { reanalyzeVideo } from '../api.js';
+import { SpeakButton } from './SpeakButton.jsx';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -15,7 +16,24 @@ function formatDate(dateStr) {
   }
 }
 
-export default function VideoCard({ video, onUpdated }) {
+function buildVideoSpeakText(data) {
+  return data.summary || '';
+}
+
+function buildVideoRecsText(data) {
+  const signals = Array.isArray(data.trade_signals) ? data.trade_signals : [];
+  const tickerList = Array.isArray(data.tickers) ? data.tickers : [];
+  if (signals.length === 0 && tickerList.length === 0) return '';
+  const signalMap = Object.fromEntries(signals.map((s) => [s.ticker, s]));
+  const mentionOnly = tickerList.filter((t) => !signalMap[t]);
+  const parts = [
+    ...signals.map((s) => `${s.ticker}: ${s.signal}${s.reasoning ? '. ' + s.reasoning : ''}`),
+    ...(mentionOnly.length ? ['Also mentioned: ' + mentionOnly.join(', ')] : []),
+  ];
+  return parts.join('. ');
+}
+
+export default function VideoCard({ video, onUpdated, speakingId, onSpeak }) {
   const [imgError, setImgError] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
 
@@ -111,7 +129,12 @@ export default function VideoCard({ video, onUpdated }) {
                 </span>
               </div>
             ) : summary ? (
-              <p className="text-zinc-300 text-lg leading-relaxed">{summary}</p>
+              <>
+                <div className="mb-2">
+                  <SpeakButton id={`${id}-summary`} text={buildVideoSpeakText(data)} speakingId={speakingId} onSpeak={onSpeak} />
+                </div>
+                <p className="text-zinc-300 text-lg leading-relaxed">{summary}</p>
+              </>
             ) : (
               <span className="text-zinc-600 text-base italic">No summary available</span>
             )}
@@ -129,7 +152,12 @@ export default function VideoCard({ video, onUpdated }) {
 
         {/* ── Column 3: Recommendations ── */}
         <div className="md:flex-1 p-3 md:p-4 flex flex-col gap-2 border-t md:border-t-0 border-zinc-700">
-          <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Recommendations</span>
+          <div className="flex items-center gap-3">
+            <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Recommendations</span>
+            {analyzed_at && !reanalyzing && buildVideoRecsText(data) && (
+              <SpeakButton id={`${id}-recs`} text={buildVideoRecsText(data)} speakingId={speakingId} onSpeak={onSpeak} />
+            )}
+          </div>
           {!analyzed_at || reanalyzing ? (
             <div className="h-3.5 w-3.5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin mt-1" />
           ) : signalList.length > 0 ? (

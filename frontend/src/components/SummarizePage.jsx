@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { summarizeVideo, getSummaryHistory, deleteSummaryItem } from '../api.js';
 import SignalBadge from './SignalBadge.jsx';
+import { useSpeech, SpeakButton } from './SpeakButton.jsx';
 
 function pdfSafe(str) {
   return String(str ?? '').replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
@@ -165,6 +166,30 @@ function downloadPdf(history) {
   doc.save('summary_history.pdf');
 }
 
+function buildSummaryText(item) {
+  const parts = [item.summary || ''];
+  if (Array.isArray(item.keyPoints) && item.keyPoints.length > 0) {
+    parts.push('Key points: ' + item.keyPoints.join('. '));
+  }
+  return parts.join('. ');
+}
+
+function buildRecsText(item) {
+  const signals = Array.isArray(item.trade_signals) ? item.trade_signals : [];
+  const tickerList = Array.isArray(item.tickers) ? item.tickers : [];
+  const recs = Array.isArray(item.recommendations) ? item.recommendations : [];
+  if (signals.length > 0 || tickerList.length > 0) {
+    const signalMap = Object.fromEntries(signals.map((s) => [s.ticker, s]));
+    const mentionOnly = tickerList.filter((t) => !signalMap[t]);
+    const parts = [
+      ...signals.map((s) => `${s.ticker}: ${s.signal}${s.reasoning ? '. ' + s.reasoning : ''}`),
+      ...(mentionOnly.length ? ['Also mentioned: ' + mentionOnly.join(', ')] : []),
+    ];
+    return parts.join('. ');
+  }
+  return recs.join('. ');
+}
+
 function Recommendations({ tickers, tradeSignals, recommendations, large }) {
   const signals = Array.isArray(tradeSignals) ? tradeSignals : [];
   const tickerList = Array.isArray(tickers) ? tickers : [];
@@ -215,6 +240,7 @@ export default function SummarizePage({ onBack, onLogout }) {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const { speakingId, speak } = useSpeech();
 
   useEffect(() => {
     getSummaryHistory()
@@ -381,6 +407,9 @@ export default function SummarizePage({ onBack, onLogout }) {
                           {item.created_at && <p className="mt-0.5 text-zinc-600 text-sm">Briefed {formatDate(item.created_at)}</p>}
                         </td>
                         <td className="px-4 py-3 text-zinc-300 text-lg leading-relaxed">
+                          <div className="mb-2">
+                            <SpeakButton id={`${item.id ?? idx}-summary`} text={buildSummaryText(item)} speakingId={speakingId} onSpeak={speak} />
+                          </div>
                           <p>{item.summary}</p>
                           {Array.isArray(item.keyPoints) && item.keyPoints.length > 0 && (
                             <ul className="mt-3 space-y-2">
@@ -394,6 +423,11 @@ export default function SummarizePage({ onBack, onLogout }) {
                           )}
                         </td>
                         <td className="px-4 py-3">
+                          {buildRecsText(item) && (
+                            <div className="mb-2">
+                              <SpeakButton id={`${item.id ?? idx}-recs`} text={buildRecsText(item)} speakingId={speakingId} onSpeak={speak} />
+                            </div>
+                          )}
                           <Recommendations tickers={item.tickers} tradeSignals={item.trade_signals} recommendations={item.recommendations} large />
                         </td>
                         <td className="px-4 py-3">
@@ -453,6 +487,9 @@ export default function SummarizePage({ onBack, onLogout }) {
                       </div>
                     </div>
                     <div className="px-4 pb-4 text-zinc-300 text-base leading-relaxed border-t border-zinc-800 pt-3">
+                      <div className="mb-2">
+                        <SpeakButton id={`${item.id ?? idx}-summary`} text={buildSummaryText(item)} speakingId={speakingId} onSpeak={speak} />
+                      </div>
                       <p>{item.summary}</p>
                       {Array.isArray(item.keyPoints) && item.keyPoints.length > 0 && (
                         <ul className="mt-3 space-y-2">
@@ -463,6 +500,11 @@ export default function SummarizePage({ onBack, onLogout }) {
                             </li>
                           ))}
                         </ul>
+                      )}
+                      {buildRecsText(item) && (
+                        <div className="mt-3 mb-2">
+                          <SpeakButton id={`${item.id ?? idx}-recs`} text={buildRecsText(item)} speakingId={speakingId} onSpeak={speak} />
+                        </div>
                       )}
                       <Recommendations tickers={item.tickers} tradeSignals={item.trade_signals} recommendations={item.recommendations} />
                     </div>

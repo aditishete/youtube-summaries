@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import VideoCard from './VideoCard.jsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useSpeech } from './SpeakButton.jsx';
 
 function csvCell(value) {
   const str = String(value ?? '').replace(/"/g, '""');
@@ -250,6 +251,8 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
   const [disclosureOpen, setDisclosureOpen] = useState(false);
   useEffect(() => { setExtraCount(0); }, [selectedChannelId]);
 
+  const { speakingId, speak } = useSpeech();
+
   const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
   let displayVideos, hasMore;
@@ -418,7 +421,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
       {!loading && displayVideos.length > 0 && (
         <div className="space-y-4">
           {displayVideos.map((video) => (
-            <VideoCard key={video.id} video={video} />
+            <VideoCard key={video.id} video={video} speakingId={speakingId} onSpeak={speak} />
           ))}
         </div>
       )}
