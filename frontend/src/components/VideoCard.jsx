@@ -33,7 +33,7 @@ function buildVideoRecsText(data) {
   return parts.join('. ');
 }
 
-export default function VideoCard({ video, onUpdated, speakingId, onSpeak }) {
+export default function VideoCard({ video, onUpdated, speakingId, onSpeak, isAdmin }) {
   const [imgError, setImgError] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
 
@@ -139,7 +139,7 @@ export default function VideoCard({ video, onUpdated, speakingId, onSpeak }) {
               <span className="text-zinc-600 text-base italic">No summary available</span>
             )}
           </div>
-          {analyzed_at && !reanalyzing && (
+          {analyzed_at && !reanalyzing && isAdmin && (
             <button
               onClick={handleReanalyze}
               className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors self-end"

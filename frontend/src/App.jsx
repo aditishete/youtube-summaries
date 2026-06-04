@@ -322,6 +322,7 @@ export default function App() {
             channels={channels}
             onBack={() => setAppPage('landing')}
             onLogout={handleLogout}
+            isAdmin={currentUser?.role === 'admin'}
           />
         )}
       </main>
