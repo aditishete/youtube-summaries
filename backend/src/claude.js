@@ -31,8 +31,12 @@ Respond with ONLY a JSON object, no markdown fences:
 Rules:
 - summary is required — always write one even if no stocks are discussed
 - tickers: every stock/ETF/crypto symbol explicitly mentioned
-- trade_signals: only when the speaker makes a clear directional call (BUY/SELL/WATCH/HOLD)
-- signal must be one of: BUY, SELL, WATCH, HOLD`;
+- trade_signals: only when the speaker makes a clear directional call; signal must be BUY, SELL, WATCH, or HOLD
+- Options signal mapping (critical — do not confuse "sold" with SELL):
+  * Sold puts / buying calls / bull call spread = BUY (bullish)
+  * Bought puts / sold calls / bear put spread = SELL (bearish)
+  * "Sold puts on AAPL" → { ticker: "AAPL", signal: "BUY", reasoning: "sold puts — bullish, willing to own at strike" }
+- Only emit a signal when the speaker makes a real directional commitment, not just a mention`;
 
   try {
     const response = await client.messages.create({

@@ -99,6 +99,11 @@ Rules:
 - keyPoints: 5-8 most important takeaways from the video
 - tickers: every stock/ETF/crypto symbol explicitly mentioned (empty array if none)
 - trade_signals: only when the speaker makes a clear directional call; signal must be BUY, SELL, WATCH, or HOLD (empty array if none)
+- Options signal mapping (critical — do not confuse "sold" with SELL):
+  * Sold puts / buying calls / bull call spread = BUY (bullish)
+  * Bought puts / sold calls / bear put spread = SELL (bearish)
+  * "Sold puts on AAPL" → { ticker: "AAPL", signal: "BUY", reasoning: "sold puts — bullish, willing to own at strike" }
+- Only emit a signal when the speaker makes a real directional commitment, not just a mention
 - recommendations: 3-5 specific, actionable things the viewer should do based on this video — only for self-help, health, diet, fitness, productivity, or lifestyle videos; empty array for investment/finance videos or videos with no actionable viewer advice
 - Write in English regardless of the transcript language`,
         },
