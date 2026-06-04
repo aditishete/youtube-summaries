@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import 'dotenv/config';
 import { afterAll } from 'vitest';
 
 // Point db.js at a fresh temp file — must be set before any module imports db.js

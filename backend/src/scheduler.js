@@ -4,14 +4,42 @@ import { fetchChannelVideos } from './rss.js';
 import { analyzeVideo } from './claude.js';
 import { fetchTranscript } from './transcript.js';
 
-async function pollChannels() {
+// On startup: re-analyze any videos that were inserted but never analyzed (e.g. crashed mid-run)
+async function reanalyzeUnanalyzed() {
+  const videos = db.prepare(`
+    SELECT v.*, c.name AS channel_name FROM videos v
+    JOIN channels c ON c.id = v.channel_id
+    WHERE v.analyzed_at IS NULL
+  `).all();
+
+  if (videos.length === 0) return;
+  console.log(`[Scheduler] ${videos.length} unanalyzed video(s) found — catching up...`);
+
+  for (const video of videos) {
+    try {
+      const transcript = await fetchTranscript(video.youtube_id);
+      const analysis = await analyzeVideo(
+        { title: video.title, description: video.description, transcript },
+        video.channel_name
+      );
+      db.prepare(`
+        UPDATE videos SET summary = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP WHERE id = ?
+      `).run(analysis.summary, JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), video.id);
+      console.log(`[Scheduler] Caught up: ${video.title}`);
+    } catch (err) {
+      console.error(`[Scheduler] Catch-up analysis failed for ${video.youtube_id}:`, err.message);
+    }
+  }
+}
+
+async function pollChannels(limit = 10) {
   const channels = db.prepare('SELECT * FROM channels').all();
   console.log(`[Scheduler] Polling ${channels.length} channel(s)...`);
 
   for (const channel of channels) {
     try {
       console.log(`[Scheduler] Fetching videos for: ${channel.name} (${channel.youtube_id})`);
-      const { channelName, items } = await fetchChannelVideos(channel.youtube_id, 10);
+      const { channelName, items } = await fetchChannelVideos(channel.youtube_id, limit);
 
       let newCount = 0;
 
@@ -95,10 +123,15 @@ export function startScheduler() {
 
   console.log(`[Scheduler] Starting — polling every ${interval} minute(s). Cron: ${cronExpression}`);
 
-  // Poll immediately on startup so fresh videos appear after any restart
-  pollChannels().catch((err) => {
-    console.error('[Scheduler] Startup poll error:', err.message);
-  });
+  // On startup: catch up on anything missed during downtime
+  (async () => {
+    try {
+      await reanalyzeUnanalyzed();   // re-analyze videos that crashed mid-analysis
+      await pollChannels(15);        // fetch up to 15 (RSS max) to catch missed videos
+    } catch (err) {
+      console.error('[Scheduler] Startup catch-up error:', err.message);
+    }
+  })();
 
   cron.schedule(cronExpression, () => {
     pollChannels().catch((err) => {

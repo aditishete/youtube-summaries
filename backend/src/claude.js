@@ -10,7 +10,7 @@ const client = new Anthropic({
  */
 export async function analyzeVideo(video, channelName) {
   const content = video.transcript?.trim()
-    ? `Transcript:\n${video.transcript.slice(0, 12000)}`
+    ? `Transcript:\n${video.transcript.slice(0, 20000)}`
     : `Description:\n${video.description || '(none)'}`;
 
   const userPrompt = `Summarize this YouTube video for an investor audience.
@@ -30,7 +30,7 @@ Respond with ONLY a JSON object, no markdown fences:
 
 Rules:
 - summary is required — always write one even if no stocks are discussed
-- tickers: every stock/ETF/crypto symbol explicitly mentioned
+- tickers: every stock/ETF/crypto mentioned by ticker symbol OR company name — resolve company names to their ticker (e.g. "Vertiv" → "VRT", "Nvidia" → "NVDA", "Micron" → "MU"); include all even if briefly mentioned
 - trade_signals: only when the speaker makes a clear directional call; signal must be BUY, SELL, WATCH, or HOLD
 - Options signal mapping (critical — do not confuse "sold" with SELL):
   * Sold puts / buying calls / bull call spread = BUY (bullish)
