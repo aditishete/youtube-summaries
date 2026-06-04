@@ -30,7 +30,8 @@ Respond with ONLY a JSON object, no markdown fences:
 
 Rules:
 - summary is required — always write one even if no stocks are discussed
-- tickers: every stock/ETF/crypto mentioned by ticker symbol OR company name — resolve company names to their ticker (e.g. "Vertiv" → "VRT", "Nvidia" → "NVDA", "Micron" → "MU"); include all even if briefly mentioned
+- tickers: every stock/ETF/crypto mentioned by ticker symbol OR company name — resolve company names to their correct exchange-listed ticker (e.g. "Vertiv" → "VRT", "Nvidia" → "NVDA", "Micron" → "MU", "Coherent" → "COHR", "Marvell" → "MRVL"); include all even if briefly mentioned
+- speakers sometimes state the wrong ticker symbol for a company — if a company name and a ticker conflict, trust the company name and use the correct ticker (e.g. speaker says "ticker COR" but refers to Coherent → use "COHR", not "COR")
 - trade_signals: only when the speaker makes a clear directional call; signal must be BUY, SELL, WATCH, or HOLD
 - Options signal mapping (critical — do not confuse "sold" with SELL):
   * Sold puts / buying calls / bull call spread = BUY (bullish)
