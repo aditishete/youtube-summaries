@@ -8,6 +8,7 @@ import LandingPage from './components/LandingPage.jsx';
 import SummarizePage from './components/SummarizePage.jsx';
 import AnalyticsPage from './components/AnalyticsPage.jsx';
 import { getChannels, getVideos, addChannel, deleteChannel, refreshChannel, getMe, trackPageView } from './api.js';
+import { MAX_VIDEOS_PER_CHANNEL } from './config.js';
 
 export default function App() {
   // ── Auth state ──────────────────────────────────────────────────────────────
@@ -232,16 +233,12 @@ export default function App() {
   }
 
   // appPage === 'dashboard'
-  // Compute visible counts per channel (what you'll see when you click each item)
-  const _threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-  const _byChannel = {};
-  for (const v of videos) (_byChannel[v.channel_id] = _byChannel[v.channel_id] || []).push(v);
+  // Sidebar counts: per-channel shows total in DB; "All Channels" shows sum of min(3, count)
   const visibleCountByChannel = {};
   let allChannelsVisibleCount = 0;
-  for (const [cid, cvids] of Object.entries(_byChannel)) {
-    const recent = cvids.filter(v => new Date(v.published_at) >= _threeDaysAgo);
-    visibleCountByChannel[parseInt(cid)] = recent.length > 10 ? recent.length : Math.min(10, cvids.length);
-    allChannelsVisibleCount += recent.length > 5 ? recent.length : Math.min(5, cvids.length);
+  for (const ch of channels) {
+    visibleCountByChannel[ch.id] = ch.video_count ?? 0;
+    allChannelsVisibleCount += Math.min(MAX_VIDEOS_PER_CHANNEL, ch.video_count ?? 0);
   }
 
   return (

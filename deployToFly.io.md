@@ -112,6 +112,41 @@ The frontend wakes on demand since it has no state and starts instantly.
 
 ---
 
+## Video limit configuration
+
+These values are hardcoded constants — change them in source and redeploy to take effect.
+
+### Backend — `backend/src/routes/channels.js`
+
+| Constant | Default | Description |
+|---|---|---|
+| `MAX_RETAINED_VIDEOS_PER_CHANNEL` | `30` | Max videos kept per channel in the database. Older videos are pruned when a channel is added or refreshed. |
+| `MAX_INITIAL_FETCH_PER_CHANNEL` | `10` | Max videos fetched when a new channel is added (filtered to the past 7 days). Also used on manual channel refresh. |
+
+### Frontend — `frontend/src/config.js`
+
+| Constant | Default | Description |
+|---|---|---|
+| `MAX_VIDEOS_PER_CHANNEL` | `3` | Max videos shown per channel in the "All Channels" view. |
+| `MAX_RETAINED_VIDEOS_PER_CHANNEL` | `30` | Controls the initial page size in single-channel view and the sidebar video count badge. Should match the backend value. |
+
+### To change these values
+
+1. Edit the constants in `backend/src/routes/channels.js` and/or `frontend/src/config.js`
+2. Redeploy the affected app(s):
+```bash
+# Backend change only
+cd backend && fly deploy
+
+# Frontend change only
+cd frontend && fly deploy
+
+# Both changed
+(cd backend && fly deploy) && (cd frontend && fly deploy)
+```
+
+---
+
 ## Troubleshooting
 
 **Machine stopped after deploy and won't start**

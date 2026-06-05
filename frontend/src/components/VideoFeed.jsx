@@ -3,6 +3,7 @@ import VideoCard from './VideoCard.jsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useSpeech } from './SpeakButton.jsx';
+import { MAX_VIDEOS_PER_CHANNEL, MAX_RETAINED_VIDEOS_PER_CHANNEL } from '../config.js';
 
 function csvCell(value) {
   const str = String(value ?? '').replace(/"/g, '""');
@@ -253,27 +254,21 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
 
   const { speakingId, speak } = useSpeech();
 
-  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-
   let displayVideos, hasMore;
   if (selectedChannelId) {
-    // Single channel: max 10, or all from past 3 days if >10
-    const recentVideos = videos.filter(v => new Date(v.published_at) >= threeDaysAgo);
-    const base = recentVideos.length > 10 ? recentVideos.length : 10;
-    const limit = base + extraCount * 10;
+    // Single channel: paginate through all stored videos (up to MAX_RETAINED_VIDEOS_PER_CHANNEL in DB)
+    const limit = MAX_RETAINED_VIDEOS_PER_CHANNEL + extraCount * 10;
     displayVideos = videos.slice(0, limit);
     hasMore = videos.length > limit;
   } else {
-    // All channels: per-channel rule — max 5 per channel, or all from past 3 days if >5 from that channel
+    // All channels: hard cap of MAX_VIDEOS_PER_CHANNEL per channel, sorted by date
     const byChannel = {};
     for (const v of videos) {
       (byChannel[v.channel_id] = byChannel[v.channel_id] || []).push(v);
     }
     const merged = [];
     for (const channelVideos of Object.values(byChannel)) {
-      const recent = channelVideos.filter(v => new Date(v.published_at) >= threeDaysAgo);
-      const toShow = recent.length > 5 ? recent : channelVideos.slice(0, 5);
-      merged.push(...toShow);
+      merged.push(...channelVideos.slice(0, MAX_VIDEOS_PER_CHANNEL));
     }
     merged.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
     displayVideos = merged;

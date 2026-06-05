@@ -7,6 +7,22 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
+const MAX_RETAINED_VIDEOS_PER_CHANNEL = 30;
+const MAX_INITIAL_FETCH_PER_CHANNEL = 10;
+
+function pruneChannelVideos(channelId) {
+  db.prepare(`
+    DELETE FROM videos
+    WHERE channel_id = ?
+      AND id NOT IN (
+        SELECT id FROM videos
+        WHERE channel_id = ?
+        ORDER BY published_at DESC
+        LIMIT ${MAX_RETAINED_VIDEOS_PER_CHANNEL}
+      )
+  `).run(channelId, channelId);
+}
+
 // GET /api/channels — list all channels with video counts
 router.get('/', requireAuth, (req, res) => {
   try {
@@ -47,8 +63,9 @@ router.post('/', requireAdmin, async (req, res) => {
       return res.status(409).json({ error: 'Channel already added' });
     }
 
-    // Fetch channel info and initial videos
-    const { channelName, items } = await fetchChannelVideos(channelId, 5);
+    // Fetch channel info and initial videos — last 7 days, max 10
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const { channelName, items } = await fetchChannelVideos(channelId, MAX_INITIAL_FETCH_PER_CHANNEL, oneWeekAgo);
 
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
 
@@ -120,10 +137,11 @@ router.post('/', requireAdmin, async (req, res) => {
       }
     }
 
-    // Update last_fetched_at
+    // Update last_fetched_at and enforce 30-video cap
     db.prepare('UPDATE channels SET last_fetched_at = CURRENT_TIMESTAMP WHERE id = ?').run(
       newChannelId
     );
+    pruneChannelVideos(newChannelId);
 
     return res.status(201).json({ channel: channelRow, videos: insertedVideos });
   } catch (err) {
@@ -154,7 +172,7 @@ router.post('/:id/refresh', requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Channel not found' });
     }
 
-    const { channelName, items } = await fetchChannelVideos(channel.youtube_id, 10);
+    const { channelName, items } = await fetchChannelVideos(channel.youtube_id, MAX_INITIAL_FETCH_PER_CHANNEL);
     let added = 0;
 
     for (const item of items) {
@@ -212,6 +230,7 @@ router.post('/:id/refresh', requireAdmin, async (req, res) => {
     db.prepare('UPDATE channels SET last_fetched_at = CURRENT_TIMESTAMP WHERE id = ?').run(
       channel.id
     );
+    pruneChannelVideos(channel.id);
 
     res.json({ added });
   } catch (err) {

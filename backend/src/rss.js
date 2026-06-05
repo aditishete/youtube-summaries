@@ -66,8 +66,11 @@ export async function resolveChannelId(input) {
 
 /**
  * Fetches recent videos from a YouTube channel's RSS feed.
+ * @param {string} channelId
+ * @param {number} limit - max number of videos to return
+ * @param {Date|null} sinceDate - if set, only return videos published on or after this date
  */
-export async function fetchChannelVideos(channelId, limit = 5) {
+export async function fetchChannelVideos(channelId, limit = 5, sinceDate = null) {
   const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
 
   let feed;
@@ -80,7 +83,12 @@ export async function fetchChannelVideos(channelId, limit = 5) {
   const channelName = feed.title || 'Unknown Channel';
   const resolvedChannelId = feed.channelId || channelId;
 
-  const items = (feed.items || []).slice(0, limit).map((item) => {
+  let feedItems = feed.items || [];
+  if (sinceDate) {
+    feedItems = feedItems.filter(item => item.isoDate && new Date(item.isoDate) >= sinceDate);
+  }
+
+  const items = feedItems.slice(0, limit).map((item) => {
     // Extract videoId from item or from URL
     let videoId = item.videoId;
     if (!videoId && item.link) {
