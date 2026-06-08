@@ -152,10 +152,10 @@ export default function App() {
   }, [authStatus, appPage, selectedChannelId, loadChannels, loadVideos]);
 
   const handleChannelAdded = useCallback(async (url) => {
-    await addChannel(url);
+    const result = await addChannel(url);
     await loadChannels();
     await loadVideos(selectedChannelId);
-    setShowAddModal(false);
+    return result;
   }, [loadChannels, loadVideos, selectedChannelId]);
 
   const handleChannelDeleted = useCallback(async (id) => {

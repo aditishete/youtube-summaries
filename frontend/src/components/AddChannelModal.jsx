@@ -4,6 +4,7 @@ export default function AddChannelModal({ onClose, onAdd }) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -32,7 +33,9 @@ export default function AddChannelModal({ onClose, onAdd }) {
     setError(null);
 
     try {
-      await onAdd(trimmed);
+      const data = await onAdd(trimmed);
+      setResult(data);
+      setLoading(false);
     } catch (err) {
       setError(err.message || 'Failed to add channel. Please try again.');
       setLoading(false);
@@ -116,14 +119,30 @@ export default function AddChannelModal({ onClose, onAdd }) {
               <div>
                 <p className="text-blue-300 text-sm font-medium">Adding channel...</p>
                 <p className="text-blue-400/70 text-xs mt-0.5">
-                  Fetching &amp; analyzing up to 5 recent videos with Claude AI...
+                  Fetching &amp; analyzing up to 10 recent videos with Claude AI. This may take a few minutes.
                 </p>
               </div>
             </div>
           )}
 
+          {/* Success result */}
+          {result && (
+            <div className={`border rounded-lg px-4 py-3 ${result.failed > 0 && result.analyzed === 0 ? 'bg-amber-900/30 border-amber-700' : 'bg-emerald-900/30 border-emerald-700'}`}>
+              <p className={`text-sm font-medium ${result.failed > 0 && result.analyzed === 0 ? 'text-amber-300' : 'text-emerald-300'}`}>
+                ✓ {result.channel?.name} added
+              </p>
+              {result.attempted === 0 ? (
+                <p className="text-zinc-400 text-xs mt-1">No videos found from the past week — the channel will be picked up on the next scheduled poll.</p>
+              ) : result.analyzed === result.attempted ? (
+                <p className="text-zinc-400 text-xs mt-1">{result.analyzed} video{result.analyzed !== 1 ? 's' : ''} analyzed successfully.</p>
+              ) : (
+                <p className="text-zinc-400 text-xs mt-1">{result.analyzed} of {result.attempted} video{result.attempted !== 1 ? 's' : ''} analyzed.{result.failed > 0 ? ` ${result.failed} failed — check server logs.` : ''}</p>
+              )}
+            </div>
+          )}
+
           {/* Hint */}
-          {!loading && !error && (
+          {!loading && !error && !result && (
             <div className="text-zinc-500 text-xs space-y-1">
               <p className="font-medium text-zinc-400">How to find a channel URL:</p>
               <p>Go to the channel on YouTube → copy the URL from your browser. It should look like:</p>
@@ -137,21 +156,33 @@ export default function AddChannelModal({ onClose, onAdd }) {
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={loading || !url.trim()}
-              className="flex-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm py-2.5 px-4 rounded-lg transition-colors"
-            >
-              {loading ? 'Adding...' : 'Add Channel'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2.5 text-sm text-zinc-400 hover:text-zinc-200 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
+            {result ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm py-2.5 px-4 rounded-lg transition-colors"
+              >
+                Done
+              </button>
+            ) : (
+              <>
+                <button
+                  type="submit"
+                  disabled={loading || !url.trim()}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm py-2.5 px-4 rounded-lg transition-colors"
+                >
+                  {loading ? 'Adding...' : 'Add Channel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={loading}
+                  className="px-4 py-2.5 text-sm text-zinc-400 hover:text-zinc-200 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
           </div>
         </form>
       </div>

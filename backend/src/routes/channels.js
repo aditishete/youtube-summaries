@@ -89,6 +89,8 @@ router.post('/', requireAdmin, async (req, res) => {
 
     // Insert and analyze each video
     const insertedVideos = [];
+    let analyzed = 0;
+    let failed = 0;
 
     for (const item of items) {
       try {
@@ -139,8 +141,10 @@ router.post('/', requireAdmin, async (req, res) => {
           tickers: JSON.parse(videoRow.tickers || '[]'),
           trade_signals: JSON.parse(videoRow.trade_signals || '[]'),
         });
+        analyzed++;
       } catch (videoErr) {
         console.error(`Error processing video ${item.videoId}:`, videoErr.message);
+        failed++;
       }
     }
 
@@ -151,7 +155,7 @@ router.post('/', requireAdmin, async (req, res) => {
     pruneChannelVideos(newChannelId);
     db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'add_channel', channelName);
 
-    return res.status(201).json({ channel: channelRow, videos: insertedVideos });
+    return res.status(201).json({ channel: channelRow, videos: insertedVideos, analyzed, failed, attempted: items.length });
   } catch (err) {
     console.error('POST /channels error:', err);
     res.status(500).json({ error: err.message || 'Failed to add channel' });
