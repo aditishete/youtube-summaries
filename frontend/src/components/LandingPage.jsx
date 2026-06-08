@@ -38,10 +38,11 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
             <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-blue-400 transition-colors">
               Market Brief
             </h2>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-              Track YouTube investment channels. Get AI-generated summaries, ticker mentions, and
-              BUY / SELL / WATCH signals from the latest videos.
-            </p>
+            <ul className="text-zinc-500 text-xs space-y-1.5 mb-6">
+              <li className="flex items-center gap-2"><span className="text-blue-500">•</span> AI summaries and BUY / SELL / WATCH signals</li>
+              <li className="flex items-center gap-2"><span className="text-blue-500">•</span> Ticker links to TradingView</li>
+              <li className="flex items-center gap-2"><span className="text-blue-500">•</span> Export to CSV or PDF</li>
+            </ul>
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-400 group-hover:gap-2.5 transition-all">
               Open feed <span>→</span>
             </span>
@@ -56,14 +57,16 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
             <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-violet-400 transition-colors">
               Video In Brief
             </h2>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-              Paste any YouTube URL and get an instant AI summary of the main points — in English,
-              regardless of the original language.
-            </p>
+            <ul className="text-zinc-500 text-xs space-y-1.5 mb-6">
+              <li className="flex items-center gap-2"><span className="text-violet-500">•</span> Instant summary and trade signal extraction</li>
+              <li className="flex items-center gap-2"><span className="text-violet-500">•</span> Works on any public YouTube video</li>
+              <li className="flex items-center gap-2"><span className="text-violet-500">•</span> Past briefs saved for quick reference</li>
+            </ul>
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-400 group-hover:gap-2.5 transition-all">
               Get a video brief <span>→</span>
             </span>
           </button>
+
           {/* Card 3 — Analytics (admin only) */}
           {currentUser?.role === 'admin' && (
             <button
@@ -74,9 +77,11 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
               <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-emerald-400 transition-colors">
                 Analytics
               </h2>
-              <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-                View user activity, visit counts, and video brief usage across all accounts.
-              </p>
+              <ul className="text-zinc-500 text-xs space-y-1.5 mb-6">
+                <li className="flex items-center gap-2"><span className="text-emerald-500">•</span> Visits, logins, and page views over time</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">•</span> Per-user activity breakdown</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">•</span> Admin action log</li>
+              </ul>
               <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 group-hover:gap-2.5 transition-all">
                 View analytics <span>→</span>
               </span>
