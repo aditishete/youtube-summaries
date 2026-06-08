@@ -27,20 +27,20 @@ export default function LoginPage({ onLogin, onGoRegister }) {
       <div className="w-full max-w-sm">
         {/* App title + description */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-zinc-100 tracking-tight mb-3">
+          <h1 className="text-2xl font-bold text-zinc-100 tracking-tight mb-4">
             InBrief
           </h1>
-          <p className="text-zinc-300 text-sm leading-relaxed mb-4">
+          <p className="text-zinc-400 text-sm text-center leading-relaxed mb-4">
             InBrief helps you stay informed without watching hours of content on YouTube.
           </p>
-          <div className="flex flex-col gap-1.5 text-left bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 mb-2">
-            <div className="flex items-start gap-2 text-xs text-zinc-400">
+          <div className="flex flex-col gap-3 text-left bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-4">
+            <div className="flex items-start gap-3 text-sm text-zinc-400">
               <span className="text-blue-400 mt-0.5">📈</span>
-              <span><span className="text-zinc-200 font-medium">Market Brief</span> — AI-powered investment intelligence feed. Tracks channels, get concise summaries and BUY / SELL / WATCH signals from the latest videos.</span>
+              <span><span className="text-zinc-200 font-semibold">Market Brief</span> — AI-powered investment intelligence feed. Tracks channels, get concise summaries and BUY / SELL / WATCH signals from the latest videos.</span>
             </div>
-            <div className="flex items-start gap-2 text-xs text-zinc-400">
+            <div className="flex items-start gap-3 text-sm text-zinc-400">
               <span className="text-violet-400 mt-0.5">▶️</span>
-              <span><span className="text-zinc-200 font-medium">Video In Brief</span> — Paste any YouTube URL for an instant AI summary and trade signal extraction.</span>
+              <span><span className="text-zinc-200 font-semibold">Video In Brief</span> — Paste any YouTube URL for an instant AI summary and trade signal extraction.</span>
             </div>
           </div>
         </div>
@@ -106,6 +106,7 @@ export default function LoginPage({ onLogin, onGoRegister }) {
             </button>
           </p>
         </div>
+
       </div>
     </div>
   );
