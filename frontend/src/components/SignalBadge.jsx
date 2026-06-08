@@ -13,11 +13,14 @@ export default function SignalBadge({ signal }) {
     SIGNAL_STYLES[type?.toUpperCase()] || 'bg-zinc-700 text-zinc-300 border border-zinc-600';
 
   return (
-    <span
-      title={reasoning || ''}
-      className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded cursor-default ${styleClass}`}
+    <a
+      href={`https://www.tradingview.com/symbols/${ticker}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={reasoning || `View ${ticker} on TradingView`}
+      className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded hover:opacity-80 transition-opacity ${styleClass}`}
     >
       {ticker} · {type}
-    </span>
+    </a>
   );
 }

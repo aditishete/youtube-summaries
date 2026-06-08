@@ -213,7 +213,7 @@ function Recommendations({ tickers, tradeSignals, recommendations, large }) {
         {mentionOnly.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {mentionOnly.map((t) => (
-              <span key={t} className="bg-zinc-700 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600">{t}</span>
+              <a key={t} href={`https://www.tradingview.com/symbols/${t}`} target="_blank" rel="noopener noreferrer" className="bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600 transition-colors">{t}</a>
             ))}
           </div>
         )}

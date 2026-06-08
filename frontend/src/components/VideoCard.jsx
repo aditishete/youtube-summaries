@@ -184,9 +184,9 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
               {mentionOnly.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1.5 border-t border-zinc-700">
                   {mentionOnly.map((t) => (
-                    <span key={t} className="bg-zinc-700 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600">
+                    <a key={t} href={`https://www.tradingview.com/symbols/${t}`} target="_blank" rel="noopener noreferrer" className="bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600 transition-colors">
                       {t}
-                    </span>
+                    </a>
                   ))}
                 </div>
               )}
@@ -194,9 +194,9 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
           ) : tickerList.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {tickerList.map((t) => (
-                <span key={t} className="bg-zinc-700 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600">
+                <a key={t} href={`https://www.tradingview.com/symbols/${t}`} target="_blank" rel="noopener noreferrer" className="bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600 transition-colors">
                   {t}
-                </span>
+                </a>
               ))}
             </div>
           ) : (
