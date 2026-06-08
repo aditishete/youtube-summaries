@@ -87,6 +87,7 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
       UPDATE videos SET summary = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(analysis.summary, JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), row.id);
+    db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'reanalyze_video', row.title);
 
     res.json({
       ...analysis,

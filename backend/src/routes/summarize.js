@@ -151,6 +151,7 @@ Rules:
         SELECT id FROM user_summaries WHERE user_id = ? ORDER BY created_at DESC LIMIT 20
       )
     `).run(req.user.id, req.user.id);
+    db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'summarize_video', result.title || result.url);
 
     res.json({ ...result, id: lastInsertRowid });
   } catch (err) {

@@ -174,6 +174,17 @@ db.exec(`
   )
 `);
 
+// Action log — admin and user actions with timestamp
+db.exec(`
+  CREATE TABLE IF NOT EXISTS action_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    action TEXT NOT NULL,
+    target TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Close DB cleanly so node --watch restarts don't hit "database is locked"
 function closeDb() {
   try { _db.close(); } catch (_) {}

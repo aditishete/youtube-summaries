@@ -120,8 +120,9 @@ These values are hardcoded constants — change them in source and redeploy to t
 
 | Constant | Default | Description |
 |---|---|---|
+| `MAX_CHANNELS` | `20` | Max total channels allowed. Adding a channel returns 400 when this limit is reached. Sized for the 512MB Fly.io machine — increase with caution as each channel adds polling load every 30 minutes. |
 | `MAX_RETAINED_VIDEOS_PER_CHANNEL` | `30` | Max videos kept per channel in the database. Older videos are pruned when a channel is added or refreshed. |
-| `MAX_INITIAL_FETCH_PER_CHANNEL` | `10` | Max videos fetched when a new channel is added (filtered to the past 7 days). Also used on manual channel refresh. |
+| `MAX_INITIAL_FETCH_PER_CHANNEL` | `10` | Max videos fetched and analyzed when a new channel is added (filtered to the past 7 days). Also used on manual channel refresh. |
 
 ### Frontend — `frontend/src/config.js`
 

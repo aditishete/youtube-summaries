@@ -187,4 +187,21 @@ router.get('/', requireAdmin, (req, res) => {
   });
 });
 
+// GET /api/analytics/action-log — recent 50 actions across all users
+router.get('/action-log', requireAdmin, (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT a.id, a.action, a.target, a.created_at, u.username, u.role
+      FROM action_log a
+      JOIN users u ON u.id = a.user_id
+      ORDER BY a.created_at DESC
+      LIMIT 50
+    `).all();
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /analytics/action-log error:', err);
+    res.status(500).json({ error: 'Failed to fetch action log' });
+  }
+});
+
 export default router;

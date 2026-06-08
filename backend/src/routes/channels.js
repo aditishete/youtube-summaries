@@ -9,6 +9,7 @@ const router = Router();
 
 const MAX_RETAINED_VIDEOS_PER_CHANNEL = 30;
 const MAX_INITIAL_FETCH_PER_CHANNEL = 10;
+const MAX_CHANNELS = 20;
 
 function pruneChannelVideos(channelId) {
   db.prepare(`
@@ -54,6 +55,12 @@ router.post('/', requireAdmin, async (req, res) => {
   }
 
   try {
+    // Enforce channel cap
+    const { count } = db.prepare('SELECT COUNT(*) as count FROM channels').get();
+    if (count >= MAX_CHANNELS) {
+      return res.status(400).json({ error: `Channel limit reached. Maximum ${MAX_CHANNELS} channels allowed.` });
+    }
+
     // Resolve to a channel ID
     const channelId = await resolveChannelId(url.trim());
 
@@ -142,6 +149,7 @@ router.post('/', requireAdmin, async (req, res) => {
       newChannelId
     );
     pruneChannelVideos(newChannelId);
+    db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'add_channel', channelName);
 
     return res.status(201).json({ channel: channelRow, videos: insertedVideos });
   } catch (err) {
@@ -154,7 +162,9 @@ router.post('/', requireAdmin, async (req, res) => {
 router.delete('/:id', requireAdmin, (req, res) => {
   try {
     const { id } = req.params;
+    const channel = db.prepare('SELECT name FROM channels WHERE id = ?').get(id);
     db.prepare('DELETE FROM channels WHERE id = ?').run(id);
+    if (channel) db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'delete_channel', channel.name);
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /channels/:id error:', err);
@@ -231,6 +241,7 @@ router.post('/:id/refresh', requireAdmin, async (req, res) => {
       channel.id
     );
     pruneChannelVideos(channel.id);
+    db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'refresh_channel', channel.name);
 
     res.json({ added });
   } catch (err) {

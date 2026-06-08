@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { getAnalytics, getAnalyticsTimeseries } from '../api.js';
+import { getAnalytics, getAnalyticsTimeseries, getActionLog } from '../api.js';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
@@ -77,16 +77,28 @@ function mergeTimeseries(ts) {
   return Object.values(map).sort((a, b) => a.t.localeCompare(b.t));
 }
 
+const ACTION_LABELS = {
+  add_channel:    { label: 'Add Channel',    color: 'text-emerald-400' },
+  delete_channel: { label: 'Delete Channel', color: 'text-red-400'     },
+  refresh_channel:{ label: 'Refresh Channel',color: 'text-blue-400'    },
+  reanalyze_video:{ label: 'Reanalyze Video',color: 'text-violet-400'  },
+  summarize_video:{ label: 'Summarize Video',color: 'text-amber-400'   },
+};
+
 export default function AnalyticsPage({ onBack, onLogout }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [period, setPeriod] = useState('week');
   const [ts, setTs] = useState(null);
+  const [actionLog, setActionLog] = useState(null);
 
   useEffect(() => {
     getAnalytics()
       .then(setData)
       .catch((e) => setError(e.message));
+    getActionLog()
+      .then(setActionLog)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -317,7 +329,52 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                 </table>
               </div>
             </div>
-          </>
+          {/* Action Log */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+              <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wide">Action Log</h2>
+              <span className="text-xs text-zinc-500 font-mono">last 50</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-zinc-800/60">
+                  <tr>
+                    <Th>Time</Th>
+                    <Th>User</Th>
+                    <Th>Action</Th>
+                    <Th>Target</Th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {(actionLog || []).map((row) => {
+                    const meta = ACTION_LABELS[row.action] || { label: row.action, color: 'text-zinc-400' };
+                    return (
+                      <tr key={row.id} className="hover:bg-zinc-800/40 transition-colors">
+                        <Td muted>{new Date(row.created_at).toLocaleString()}</Td>
+                        <Td>
+                          <span className="font-medium text-zinc-100">{row.username}</span>
+                          <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded font-mono ${row.role === 'admin' ? 'bg-blue-600/30 text-blue-300' : 'bg-zinc-700 text-zinc-400'}`}>{row.role}</span>
+                        </Td>
+                        <Td><span className={`font-medium ${meta.color}`}>{meta.label}</span></Td>
+                        <Td muted>{row.target || '—'}</Td>
+                      </tr>
+                    );
+                  })}
+                  {actionLog && actionLog.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-10 text-center text-zinc-500 text-sm">No actions logged yet.</td>
+                    </tr>
+                  )}
+                  {!actionLog && (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-6 text-center text-zinc-600 text-sm">Loading…</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
         )}
       </div>
     </div>

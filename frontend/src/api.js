@@ -186,3 +186,10 @@ export const getAnalytics = async () => {
   if (!res.ok) throw new Error(data.error || 'Failed to fetch analytics');
   return data;
 };
+
+export const getActionLog = async () => {
+  const res = await apiFetch(`${BASE}/analytics/action-log`);
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch action log');
+  return data;
+};
