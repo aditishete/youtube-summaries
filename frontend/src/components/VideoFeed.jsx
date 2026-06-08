@@ -261,17 +261,8 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
     displayVideos = videos.slice(0, limit);
     hasMore = videos.length > limit;
   } else {
-    // All channels: hard cap of MAX_VIDEOS_PER_CHANNEL per channel, sorted by date
-    const byChannel = {};
-    for (const v of videos) {
-      (byChannel[v.channel_id] = byChannel[v.channel_id] || []).push(v);
-    }
-    const merged = [];
-    for (const channelVideos of Object.values(byChannel)) {
-      merged.push(...channelVideos.slice(0, MAX_VIDEOS_PER_CHANNEL));
-    }
-    merged.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
-    displayVideos = merged;
+    // All channels: backend already returns top 3 per channel sorted by date
+    displayVideos = videos;
     hasMore = false;
   }
 

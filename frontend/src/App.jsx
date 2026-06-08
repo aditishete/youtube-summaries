@@ -8,7 +8,7 @@ import LandingPage from './components/LandingPage.jsx';
 import SummarizePage from './components/SummarizePage.jsx';
 import AnalyticsPage from './components/AnalyticsPage.jsx';
 import { getChannels, getVideos, addChannel, deleteChannel, deleteVideo, refreshChannel, setChannelSubscription, getMe, trackPageView } from './api.js';
-import { MAX_VIDEOS_PER_CHANNEL } from './config.js';
+import { MAX_VIDEOS_PER_CHANNEL, MAX_RETAINED_VIDEOS_PER_CHANNEL } from './config.js';
 
 export default function App() {
   // ── Auth state ──────────────────────────────────────────────────────────────

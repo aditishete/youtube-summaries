@@ -62,13 +62,13 @@ describe('GET /api/videos', () => {
     expect(res.body.videos[0].title).toBe('Ch1 Video');
   });
 
-  it('respects limit and offset pagination', async () => {
+  it('respects limit and offset pagination for single channel', async () => {
     const channel = insertChannel();
     for (let i = 1; i <= 5; i++) insertVideo(channel.id, `v00${i}`, `Video ${i}`);
 
     const token = await getToken('viewer', 'viewerpass');
     const res = await request(app)
-      .get('/api/videos?limit=2&offset=0')
+      .get(`/api/videos?channel_id=${channel.id}&limit=2&offset=0`)
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.videos).toHaveLength(2);

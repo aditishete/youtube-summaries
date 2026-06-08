@@ -18,35 +18,33 @@ router.get('/', requireAuth, (req, res) => {
     const offset = parseInt(req.query.offset || '0', 10);
     const channelId = req.query.channel_id ? parseInt(req.query.channel_id, 10) : null;
 
-    let whereClause = '';
-    const params = [];
+    let rows, total;
 
     if (channelId) {
-      whereClause = 'WHERE v.channel_id = ?';
-      params.push(channelId);
+      // Single channel: return all videos paginated
+      const { count } = db.prepare('SELECT COUNT(*) as count FROM videos WHERE channel_id = ?').get(channelId);
+      total = count;
+      rows = db.prepare(`
+        SELECT v.*, c.name AS channel_name
+        FROM videos v JOIN channels c ON c.id = v.channel_id
+        WHERE v.channel_id = ?
+        ORDER BY v.published_at DESC
+        LIMIT ? OFFSET ?
+      `).all(channelId, limit, offset);
+    } else {
+      // All channels: top 3 per channel using window function, sorted by date
+      rows = db.prepare(`
+        SELECT v.*, c.name AS channel_name
+        FROM (
+          SELECT *, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY published_at DESC) AS rn
+          FROM videos
+        ) v
+        JOIN channels c ON c.id = v.channel_id
+        WHERE v.rn <= 3
+        ORDER BY v.published_at DESC
+      `).all();
+      total = rows.length;
     }
-
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM videos v
-      ${whereClause}
-    `;
-    const { total } = db.prepare(countQuery).get(...params);
-
-    // Get paginated videos joined with channel name
-    const videosQuery = `
-      SELECT
-        v.*,
-        c.name AS channel_name
-      FROM videos v
-      JOIN channels c ON c.id = v.channel_id
-      ${whereClause}
-      ORDER BY v.published_at DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    const rows = db.prepare(videosQuery).all(...params, limit, offset);
 
     // Parse JSON fields
     const videos = rows.map((row) => ({
