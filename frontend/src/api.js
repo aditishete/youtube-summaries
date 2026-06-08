@@ -173,15 +173,22 @@ export const trackPageView = async (page) => {
   } catch {}
 };
 
+// localDate = YYYY-MM-DD in client's timezone; tzOffset = minutes to subtract from UTC to get local
+const tzParams = () => {
+  const localDate = new Date().toLocaleDateString('en-CA');
+  const tzOffset = new Date().getTimezoneOffset(); // e.g. 420 for PDT (UTC-7)
+  return `localDate=${localDate}&tzOffset=${tzOffset}`;
+};
+
 export const getAnalyticsTimeseries = async (period) => {
-  const res = await apiFetch(`${BASE}/analytics/timeseries?period=${period}`);
+  const res = await apiFetch(`${BASE}/analytics/timeseries?period=${period}&${tzParams()}`);
   const data = await safeJSON(res);
   if (!res.ok) throw new Error(data.error || 'Failed to fetch timeseries');
   return data;
 };
 
 export const getAnalytics = async () => {
-  const res = await apiFetch(`${BASE}/analytics`);
+  const res = await apiFetch(`${BASE}/analytics?${tzParams()}`);
   const data = await safeJSON(res);
   if (!res.ok) throw new Error(data.error || 'Failed to fetch analytics');
   return data;

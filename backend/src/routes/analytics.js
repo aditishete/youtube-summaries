@@ -29,11 +29,16 @@ router.post('/pageview', requireAuth, (req, res) => {
 // GET /api/analytics/timeseries?period=today|week|month
 router.get('/timeseries', requireAdmin, (req, res) => {
   const period = req.query.period || 'week';
+  const today = req.query.localDate && /^\d{4}-\d{2}-\d{2}$/.test(req.query.localDate)
+    ? req.query.localDate
+    : new Date().toISOString().slice(0, 10);
+  const tzOffset = parseInt(req.query.tzOffset ?? '0', 10);
+  const toLocal = Number.isFinite(tzOffset) ? `, '-${tzOffset} minutes'` : '';
 
   let bucketFn, since, labelFmt;
   if (period === 'today') {
-    bucketFn = "strftime('%H:00', %col%)";
-    since = "datetime('now', '-1 day')";
+    bucketFn = `strftime('%H:00', %col%${toLocal})`;
+    since = `'${today}'`;  // start of local today
     labelFmt = 'hour';
   } else if (period === 'month') {
     bucketFn = "date(%col%)";
@@ -73,15 +78,23 @@ router.get('/timeseries', requireAdmin, (req, res) => {
 });
 
 router.get('/', requireAdmin, (req, res) => {
+  // Use client's local date + UTC offset so "today" reflects local timezone, not UTC
+  const today = req.query.localDate && /^\d{4}-\d{2}-\d{2}$/.test(req.query.localDate)
+    ? req.query.localDate
+    : new Date().toISOString().slice(0, 10);
+  const tzOffset = parseInt(req.query.tzOffset ?? '0', 10);
+  // SQLite modifier to convert stored UTC timestamps to local time: subtract tzOffset minutes
+  const toLocal = Number.isFinite(tzOffset) ? `, '-${tzOffset} minutes'` : '';
+
   const totalUsers = db.prepare('SELECT count(*) as c FROM users').get().c;
 
   const uniqueVisitorsToday = db.prepare(
-    "SELECT COUNT(DISTINCT user_id) as c FROM user_visits WHERE date(visited_at) = date('now')"
-  ).get().c;
+    `SELECT COUNT(DISTINCT user_id) as c FROM user_visits WHERE date(visited_at${toLocal}) = ?`
+  ).get(today).c;
 
   const pageVisitsToday = db.prepare(
-    "SELECT count(*) as c FROM user_visits WHERE date(visited_at) = date('now')"
-  ).get().c;
+    `SELECT count(*) as c FROM user_visits WHERE date(visited_at${toLocal}) = ?`
+  ).get(today).c;
   const pageVisitsWeek = db.prepare(
     "SELECT count(*) as c FROM user_visits WHERE visited_at >= datetime('now', '-7 days')"
   ).get().c;
@@ -90,8 +103,8 @@ router.get('/', requireAdmin, (req, res) => {
   ).get().c;
 
   const videoRequestsToday = db.prepare(
-    "SELECT count(*) as c FROM user_video_requests WHERE date(requested_at) = date('now')"
-  ).get().c;
+    `SELECT count(*) as c FROM user_video_requests WHERE date(requested_at${toLocal}) = ?`
+  ).get(today).c;
   const videoRequestsWeek = db.prepare(
     "SELECT count(*) as c FROM user_video_requests WHERE requested_at >= datetime('now', '-7 days')"
   ).get().c;
@@ -105,8 +118,8 @@ router.get('/', requireAdmin, (req, res) => {
 
   // Aggregate login counts
   const loginsToday = db.prepare(
-    "SELECT count(*) as c FROM user_logins WHERE date(logged_in_at) = date('now')"
-  ).get().c;
+    `SELECT count(*) as c FROM user_logins WHERE date(logged_in_at${toLocal}) = ?`
+  ).get(today).c;
   const loginsWeek = db.prepare(
     "SELECT count(*) as c FROM user_logins WHERE logged_in_at >= datetime('now', '-7 days')"
   ).get().c;
@@ -118,8 +131,8 @@ router.get('/', requireAdmin, (req, res) => {
   function pageViewCounts(page) {
     return {
       today: db.prepare(
-        "SELECT count(*) as c FROM user_page_views WHERE page = ? AND date(viewed_at) = date('now')"
-      ).get(page).c,
+        `SELECT count(*) as c FROM user_page_views WHERE page = ? AND date(viewed_at${toLocal}) = ?`
+      ).get(page, today).c,
       week: db.prepare(
         "SELECT count(*) as c FROM user_page_views WHERE page = ? AND viewed_at >= datetime('now', '-7 days')"
       ).get(page).c,
@@ -136,23 +149,23 @@ router.get('/', requireAdmin, (req, res) => {
       u.role,
       u.created_at,
       (SELECT count(*) FROM user_logins WHERE user_id = u.id) AS total_logins,
-      (SELECT count(*) FROM user_logins WHERE user_id = u.id AND date(logged_in_at) = date('now')) AS logins_today,
+      (SELECT count(*) FROM user_logins WHERE user_id = u.id AND date(logged_in_at${toLocal}) = '${today}') AS logins_today,
       (SELECT count(*) FROM user_logins WHERE user_id = u.id AND logged_in_at >= datetime('now', '-7 days')) AS logins_week,
       (SELECT count(*) FROM user_logins WHERE user_id = u.id AND logged_in_at >= datetime('now', '-30 days')) AS logins_month,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'landing') AS landing_total,
-      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'landing' AND date(viewed_at) = date('now')) AS landing_today,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'landing' AND date(viewed_at${toLocal}) = '${today}') AS landing_today,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'landing' AND viewed_at >= datetime('now', '-7 days')) AS landing_week,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'landing' AND viewed_at >= datetime('now', '-30 days')) AS landing_month,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief') AS market_total,
-      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND date(viewed_at) = date('now')) AS market_today,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND date(viewed_at${toLocal}) = '${today}') AS market_today,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND viewed_at >= datetime('now', '-7 days')) AS market_week,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND viewed_at >= datetime('now', '-30 days')) AS market_month,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'video_in_brief') AS vib_total,
-      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'video_in_brief' AND date(viewed_at) = date('now')) AS vib_today,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'video_in_brief' AND date(viewed_at${toLocal}) = '${today}') AS vib_today,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'video_in_brief' AND viewed_at >= datetime('now', '-7 days')) AS vib_week,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'video_in_brief' AND viewed_at >= datetime('now', '-30 days')) AS vib_month,
       (SELECT count(*) FROM user_summaries WHERE user_id = u.id) AS total_briefs,
-      (SELECT count(*) FROM user_summaries WHERE user_id = u.id AND date(created_at) = date('now')) AS briefs_today,
+      (SELECT count(*) FROM user_summaries WHERE user_id = u.id AND date(created_at${toLocal}) = '${today}') AS briefs_today,
       (SELECT count(*) FROM user_summaries WHERE user_id = u.id AND created_at >= datetime('now', '-7 days')) AS briefs_week,
       (SELECT count(*) FROM user_summaries WHERE user_id = u.id AND created_at >= datetime('now', '-30 days')) AS briefs_month
     FROM users u
