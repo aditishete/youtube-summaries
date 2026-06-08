@@ -81,7 +81,7 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
       {/* Mobile: stacked layout. Desktop: 3-column row */}
       <div className="flex flex-col md:flex-row">
         {/* ── Column 1: Thumbnail + title ── */}
-        <div className="md:flex-1 flex md:flex-col md:border-r border-zinc-700">
+        <div className="md:flex-[1] flex md:flex-col md:border-r border-zinc-700">
           {/* Mobile: thumbnail left, title right. Desktop: thumbnail full-width on top */}
           <div className="flex md:flex-col flex-1">
             <div className="flex-shrink-0 w-32 md:w-full">
@@ -119,7 +119,7 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
         </div>
 
         {/* ── Column 2: Summary ── */}
-        <div className="md:flex-1 p-3 md:p-4 flex flex-col justify-between gap-2 border-t md:border-t-0 md:border-r border-zinc-700">
+        <div className="md:flex-[2] p-3 md:p-4 flex flex-col justify-between gap-2 border-t md:border-t-0 md:border-r border-zinc-700">
           <div className="flex-1">
             {!analyzed_at || reanalyzing ? (
               <div className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
         </div>
 
         {/* ── Column 3: Recommendations ── */}
-        <div className="md:flex-1 p-3 md:p-4 flex flex-col gap-2 border-t md:border-t-0 border-zinc-700">
+        <div className="md:flex-[1.5] p-3 md:p-4 flex flex-col gap-2 border-t md:border-t-0 border-zinc-700">
           <div className="flex items-center gap-3">
             <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Recommendations</span>
             {analyzed_at && !reanalyzing && buildVideoRecsText(data) && (

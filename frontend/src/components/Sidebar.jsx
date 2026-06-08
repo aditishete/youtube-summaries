@@ -108,7 +108,7 @@ export default function Sidebar({
             <button
               onClick={onBack}
               title="Back to home"
-              className="text-zinc-500 hover:text-zinc-200 text-xs px-2 py-1 rounded hover:bg-zinc-700 transition-colors"
+              className="text-zinc-300 hover:text-white text-xs font-medium px-2 py-1 rounded hover:bg-zinc-700 transition-colors"
             >
               ← Home
             </button>
@@ -268,7 +268,7 @@ export default function Sidebar({
             <button
               onClick={onLogout}
               title="Sign out"
-              className="flex-shrink-0 text-zinc-500 hover:text-zinc-200 text-xs px-2 py-1 rounded hover:bg-zinc-700 transition-colors"
+              className="flex-shrink-0 text-zinc-300 hover:text-white text-xs font-medium px-2 py-1 rounded hover:bg-zinc-700 transition-colors"
             >
               Sign out
             </button>

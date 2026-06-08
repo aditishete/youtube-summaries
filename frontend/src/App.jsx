@@ -318,7 +318,7 @@ export default function App() {
           <span className="text-sm font-semibold text-zinc-100 flex-1 truncate">
             {channels.find(c => c.id === selectedChannelId)?.name ?? 'All Channels'}
           </span>
-          <button onClick={handleLogout} className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded hover:bg-zinc-800 transition-colors">
+          <button onClick={handleLogout} className="text-sm font-medium text-zinc-300 hover:text-white px-2 py-1 rounded hover:bg-zinc-800 transition-colors">
             Sign out
           </button>
         </div>

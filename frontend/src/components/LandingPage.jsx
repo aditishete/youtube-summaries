@@ -14,7 +14,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
           </span>
           <button
             onClick={onLogout}
-            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="text-sm font-medium text-zinc-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-zinc-800"
           >
             Sign out
           </button>

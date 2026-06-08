@@ -282,7 +282,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
         {onBack && (
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200 transition-colors mr-1"
+            className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 hover:text-white transition-colors mr-1"
           >
             ← Back
           </button>
@@ -311,7 +311,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
           {onLogout && (
             <button
               onClick={onLogout}
-              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1 rounded hover:bg-zinc-800"
+              className="text-sm font-medium text-zinc-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-zinc-800"
             >
               Sign out
             </button>

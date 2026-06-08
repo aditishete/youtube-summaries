@@ -114,7 +114,7 @@ export default function AnalyticsPage({ onBack, onLogout }) {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors">
+          <button onClick={onBack} className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">
             ← Back
           </button>
           <span className="text-zinc-700">|</span>
@@ -122,7 +122,7 @@ export default function AnalyticsPage({ onBack, onLogout }) {
           <span className="text-xs bg-blue-600/30 text-blue-300 px-1.5 py-0.5 rounded font-mono">admin</span>
         </div>
         {onLogout && (
-          <button onClick={onLogout} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1 rounded hover:bg-zinc-800">
+          <button onClick={onLogout} className="text-sm font-medium text-zinc-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-zinc-800">
             Sign out
           </button>
         )}
