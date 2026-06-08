@@ -8,12 +8,10 @@ const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
-function signToken(user) {
-  return jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
-  );
+function signToken(user, guestMode = false) {
+  const payload = { id: user.id, username: user.username, role: user.role };
+  if (guestMode) payload.guestMode = true;
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
 // POST /api/auth/login
@@ -83,6 +81,23 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error('POST /auth/register error:', err);
     return res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// POST /api/auth/guest — no credentials required, returns a read-only guest JWT
+router.post('/guest', (req, res) => {
+  try {
+    const user = db.prepare("SELECT * FROM users WHERE username = 'guest'").get();
+    if (!user) return res.status(404).json({ error: 'Guest access is not available' });
+    const token = signToken(user, true);
+    db.prepare('INSERT INTO user_logins (user_id) VALUES (?)').run(user.id);
+    return res.json({
+      token,
+      user: { id: user.id, username: user.username, role: user.role, guestMode: true },
+    });
+  } catch (err) {
+    console.error('POST /auth/guest error:', err);
+    return res.status(500).json({ error: 'Guest login failed' });
   }
 });
 

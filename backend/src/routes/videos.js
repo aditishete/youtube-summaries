@@ -101,7 +101,7 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/videos/:id
-router.delete('/:id', requireAuth, (req, res) => {
+router.delete('/:id', requireAdmin, (req, res) => {
   try {
     const result = db.prepare('DELETE FROM videos WHERE id = ?').run(req.params.id);
     if (result.changes === 0) return res.status(404).json({ error: 'Video not found' });

@@ -54,6 +54,13 @@ export async function login(username, password) {
   return data; // { token, user }
 }
 
+export async function loginAsGuest() {
+  const res = await fetch(`${BASE}/auth/guest`, { method: 'POST' });
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Guest login failed');
+  return data; // { token, user }
+}
+
 export async function register(username, password) {
   const res = await fetch(`${BASE}/auth/register`, {
     method: 'POST',

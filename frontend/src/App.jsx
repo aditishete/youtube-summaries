@@ -244,7 +244,7 @@ export default function App() {
   }
 
   if (appPage === 'summarize') {
-    return <SummarizePage onBack={() => setAppPage('landing')} onLogout={handleLogout} />;
+    return <SummarizePage onBack={() => setAppPage('landing')} onLogout={handleLogout} isGuest={currentUser?.guestMode === true} />;
   }
 
   if (appPage === 'analytics') {
@@ -341,6 +341,7 @@ export default function App() {
             onBack={() => setAppPage('landing')}
             onLogout={handleLogout}
             isAdmin={currentUser?.role === 'admin'}
+            isGuest={currentUser?.guestMode === true}
             onDeleteVideo={handleDeleteVideo}
           />
         )}

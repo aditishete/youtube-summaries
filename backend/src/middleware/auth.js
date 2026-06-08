@@ -22,7 +22,7 @@ export function requireAuth(req, res, next) {
   const token = authHeader.slice(7);
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    req.user = { id: payload.id, username: payload.username, role: payload.role };
+    req.user = { id: payload.id, username: payload.username, role: payload.role, guestMode: payload.guestMode || false };
     recordVisit(payload.id);
     next();
   } catch (err) {

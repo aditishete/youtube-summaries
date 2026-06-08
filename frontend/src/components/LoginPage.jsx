@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { login } from '../api.js';
+import { login, loginAsGuest } from '../api.js';
 
 export default function LoginPage({ onLogin, onGoRegister }) {
   const [username, setUsername] = useState('');
@@ -17,6 +17,20 @@ export default function LoginPage({ onLogin, onGoRegister }) {
       onLogin(user);
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const { token, user } = await loginAsGuest();
+      localStorage.setItem('token', token);
+      onLogin(user);
+    } catch (err) {
+      setError(err.message || 'Guest login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -103,6 +117,24 @@ export default function LoginPage({ onLogin, onGoRegister }) {
               Register
             </button>
           </p>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-zinc-700" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-zinc-900 px-3 text-zinc-500 text-sm">or</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGuestLogin}
+            disabled={loading}
+            className="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 hover:border-zinc-500 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-200 font-medium py-3 px-4 rounded-lg text-base transition-colors duration-150"
+          >
+            View as Guest
+          </button>
         </div>
       </div>
     </div>

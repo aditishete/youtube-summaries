@@ -101,7 +101,7 @@ describe('DELETE /api/videos/:id', () => {
   });
 
   it('returns 404 for non-existent video', async () => {
-    const token = await getToken('viewer', 'viewerpass');
+    const token = await getToken('admin', 'adminpass');
     const res = await request(app).delete('/api/videos/9999').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(404);
   });
@@ -110,7 +110,7 @@ describe('DELETE /api/videos/:id', () => {
     const channel = insertChannel();
     const video = insertVideo(channel.id, 'vid001', 'To Delete');
 
-    const token = await getToken('viewer', 'viewerpass');
+    const token = await getToken('admin', 'adminpass');
     const res = await request(app).delete(`/api/videos/${video.id}`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(204);
 

@@ -233,7 +233,7 @@ function Recommendations({ tickers, tradeSignals, recommendations, large }) {
   );
 }
 
-export default function SummarizePage({ onBack, onLogout }) {
+export default function SummarizePage({ onBack, onLogout, isGuest }) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -294,7 +294,7 @@ export default function SummarizePage({ onBack, onLogout }) {
       <header className="flex items-center gap-4 px-8 py-5 border-b border-zinc-800 flex-shrink-0">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 hover:text-white transition-colors"
         >
           ← Back
         </button>
@@ -303,7 +303,7 @@ export default function SummarizePage({ onBack, onLogout }) {
         {onLogout && (
           <button
             onClick={onLogout}
-            className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="ml-auto text-sm font-medium text-zinc-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-zinc-800"
           >
             Sign out
           </button>
@@ -315,37 +315,49 @@ export default function SummarizePage({ onBack, onLogout }) {
 
           {/* URL input */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-zinc-100 mb-1">Video In Brief</h1>
-            <p className="text-zinc-400 text-sm mb-5">
+            <h1 className="text-2xl font-bold text-zinc-100 mb-2">Video In Brief</h1>
+            <p className="text-zinc-300 text-base mb-5">
               Paste a YouTube URL to get an AI-generated summary in English.
             </p>
 
-            <form onSubmit={handleSubmit} className="flex gap-3">
-              <input
-                type="text"
-                value={url}
-                onChange={(e) => { setUrl(e.target.value); setError(null); }}
-                placeholder="https://www.youtube.com/watch?v=..."
-                disabled={loading}
-                className="flex-1 bg-zinc-900 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 transition"
-              />
-              <button
-                type="submit"
-                disabled={loading || !url.trim()}
-                className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
-              >
-                {loading ? 'Briefing…' : 'Get Brief'}
-              </button>
-            </form>
-
-            {error && (
-              <div className="mt-3 bg-red-900/30 border border-red-700 rounded-xl px-4 py-3">
-                <p className="text-red-300 text-sm">{error}</p>
+            {isGuest ? (
+              <div className="bg-zinc-900 border border-amber-700/50 rounded-xl px-5 py-5 flex items-start gap-4">
+                <span className="text-amber-400 text-2xl mt-0.5">🔒</span>
+                <div>
+                  <p className="text-zinc-100 font-semibold text-base">Register to generate video briefs</p>
+                  <p className="text-zinc-400 text-base mt-1">You're browsing as a guest. Create an account to generate your own AI-powered video summaries.</p>
+                </div>
               </div>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="flex gap-3">
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => { setUrl(e.target.value); setError(null); }}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    disabled={loading}
+                    className="flex-1 bg-zinc-900 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 transition"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !url.trim()}
+                    className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+                  >
+                    {loading ? 'Briefing…' : 'Get Brief'}
+                  </button>
+                </form>
+
+                {error && (
+                  <div className="mt-3 bg-red-900/30 border border-red-700 rounded-xl px-4 py-3">
+                    <p className="text-red-300 text-base">{error}</p>
+                  </div>
+                )}
+              </>
             )}
 
             {loading && (
-              <div className="mt-4 flex items-center gap-3 text-sm text-zinc-400">
+              <div className="mt-4 flex items-center gap-3 text-base text-zinc-300">
                 <div className="w-4 h-4 border-2 border-zinc-600 border-t-violet-500 rounded-full animate-spin flex-shrink-0" />
                 Fetching transcript &amp; summarizing… this usually takes 5–10 seconds.
               </div>
@@ -356,9 +368,9 @@ export default function SummarizePage({ onBack, onLogout }) {
           {!historyLoading && history.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-zinc-200">
+                <h2 className="text-lg font-semibold text-zinc-100">
                   Previous Summaries
-                  <span className="ml-2 text-xs font-mono text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded-full border border-zinc-700">
+                  <span className="ml-2 text-xs font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded-full border border-zinc-700">
                     {history.length}
                   </span>
                 </h2>
@@ -380,7 +392,7 @@ export default function SummarizePage({ onBack, onLogout }) {
 
               {deleteError && (
                 <div className="mb-3 bg-red-900/30 border border-red-700 rounded-xl px-4 py-3">
-                  <p className="text-red-300 text-sm">{deleteError}</p>
+                  <p className="text-red-300 text-base">{deleteError}</p>
                 </div>
               )}
 
@@ -395,10 +407,10 @@ export default function SummarizePage({ onBack, onLogout }) {
                   </colgroup>
                   <thead>
                     <tr className="bg-zinc-800/80">
-                      <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Video</th>
-                      <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Summary</th>
-                      <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Recommendations</th>
-                      <th className="px-4 py-2.5 text-left text-zinc-400 font-medium text-xs uppercase tracking-wide">Remove</th>
+                      <th className="px-4 py-2.5 text-left text-zinc-300 font-semibold text-sm uppercase tracking-wide">Video</th>
+                      <th className="px-4 py-2.5 text-left text-zinc-300 font-semibold text-sm uppercase tracking-wide">Summary</th>
+                      <th className="px-4 py-2.5 text-left text-zinc-300 font-semibold text-sm uppercase tracking-wide">Recommendations</th>
+                      <th className="px-4 py-2.5 text-left text-zinc-300 font-semibold text-sm uppercase tracking-wide">Remove</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">

@@ -49,6 +49,7 @@ async function fetchVideoPublishedAt(videoId) {
 
 // POST /api/summarize
 router.post('/', requireAuth, async (req, res) => {
+  if (req.user.guestMode) return res.status(403).json({ error: 'Video briefs are not available in guest mode. Please register for an account.' });
   const { url } = req.body || {};
   if (!url) return res.status(400).json({ error: 'url is required' });
 
