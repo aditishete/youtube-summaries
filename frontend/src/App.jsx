@@ -7,7 +7,7 @@ import RegisterPage from './components/RegisterPage.jsx';
 import LandingPage from './components/LandingPage.jsx';
 import SummarizePage from './components/SummarizePage.jsx';
 import AnalyticsPage from './components/AnalyticsPage.jsx';
-import { getChannels, getVideos, addChannel, deleteChannel, refreshChannel, getMe, trackPageView } from './api.js';
+import { getChannels, getVideos, addChannel, deleteChannel, deleteVideo, refreshChannel, setChannelSubscription, getMe, trackPageView } from './api.js';
 import { MAX_VIDEOS_PER_CHANNEL } from './config.js';
 
 export default function App() {
@@ -171,6 +171,25 @@ export default function App() {
     }
   }, [loadChannels, loadVideos, selectedChannelId]);
 
+  const handleToggleSubscription = useCallback(async (id, subscribed) => {
+    try {
+      await setChannelSubscription(id, subscribed);
+      await loadChannels();
+    } catch (err) {
+      console.error('Failed to update subscription:', err);
+    }
+  }, [loadChannels]);
+
+  const handleDeleteVideo = useCallback(async (id) => {
+    try {
+      await deleteVideo(id);
+      await loadVideos(selectedChannelId);
+      await loadChannels();
+    } catch (err) {
+      console.error('Failed to delete video:', err);
+    }
+  }, [loadVideos, loadChannels, selectedChannelId]);
+
   const handleRefreshChannel = useCallback(async (id) => {
     try {
       await refreshChannel(id);
@@ -252,6 +271,7 @@ export default function App() {
           onAdd={() => setShowAddModal(true)}
           onDelete={handleChannelDeleted}
           onRefresh={handleRefreshChannel}
+          onToggleSubscription={handleToggleSubscription}
           loading={loading}
           currentUser={currentUser}
           onLogout={handleLogout}
@@ -273,6 +293,7 @@ export default function App() {
               onAdd={() => { setShowAddModal(true); setMobileSidebarOpen(false); }}
               onDelete={handleChannelDeleted}
               onRefresh={handleRefreshChannel}
+              onToggleSubscription={handleToggleSubscription}
               loading={loading}
               currentUser={currentUser}
               onLogout={handleLogout}
@@ -320,6 +341,7 @@ export default function App() {
             onBack={() => setAppPage('landing')}
             onLogout={handleLogout}
             isAdmin={currentUser?.role === 'admin'}
+            onDeleteVideo={handleDeleteVideo}
           />
         )}
       </main>

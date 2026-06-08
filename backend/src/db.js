@@ -81,6 +81,7 @@ db.exec(`
     name TEXT NOT NULL,
     rss_url TEXT NOT NULL,
     thumbnail_url TEXT,
+    subscribed INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_fetched_at DATETIME
   )
@@ -173,6 +174,11 @@ db.exec(`
     viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
+
+// Add subscribed column to existing channels tables that predate it
+try {
+  db.exec('ALTER TABLE channels ADD COLUMN subscribed INTEGER NOT NULL DEFAULT 1');
+} catch (_) { /* column already exists — safe to ignore */ }
 
 // Action log — admin and user actions with timestamp
 db.exec(`

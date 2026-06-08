@@ -244,7 +244,7 @@ function SkeletonCard() {
   );
 }
 
-export default function VideoFeed({ videos, loading, selectedChannelId, channels, onBack, onLogout, isAdmin }) {
+export default function VideoFeed({ videos, loading, selectedChannelId, channels, onBack, onLogout, isAdmin, onDeleteVideo }) {
   const selectedChannel = channels?.find((c) => c.id === selectedChannelId);
   const headerTitle = selectedChannel ? selectedChannel.name : 'All Channels';
 
@@ -416,7 +416,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
       {!loading && displayVideos.length > 0 && (
         <div className="space-y-4">
           {displayVideos.map((video) => (
-            <VideoCard key={video.id} video={video} speakingId={speakingId} onSpeak={speak} isAdmin={isAdmin} />
+            <VideoCard key={video.id} video={video} speakingId={speakingId} onSpeak={speak} isAdmin={isAdmin} onDelete={onDeleteVideo} />
           ))}
         </div>
       )}

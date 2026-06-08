@@ -33,7 +33,7 @@ async function reanalyzeUnanalyzed() {
 }
 
 async function pollChannels(limit = 10) {
-  const channels = db.prepare('SELECT * FROM channels').all();
+  const channels = db.prepare('SELECT * FROM channels WHERE subscribed = 1').all();
   console.log(`[Scheduler] Polling ${channels.length} channel(s)...`);
 
   for (const channel of channels) {

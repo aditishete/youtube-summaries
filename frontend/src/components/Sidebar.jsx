@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
 
+function Tip({ label, children }) {
+  return (
+    <div className="relative group/tip">
+      {children}
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 text-zinc-200 rounded whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity z-50">
+        {label}
+      </div>
+    </div>
+  );
+}
+
 function TrashIcon() {
   return (
     <svg
@@ -23,20 +34,27 @@ function TrashIcon() {
 
 function RefreshIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="23 4 23 10 17 10" />
       <polyline points="1 20 1 14 7 14" />
       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  );
+}
+
+function UnsubscribeIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="4" width="4" height="16" />
+      <rect x="14" y="4" width="4" height="16" />
+    </svg>
+  );
+}
+
+function ResubscribeIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="5 3 19 12 5 21 5 3" />
     </svg>
   );
 }
@@ -48,6 +66,7 @@ export default function Sidebar({
   onAdd,
   onDelete,
   onRefresh,
+  onToggleSubscription,
   loading,
   currentUser,
   onLogout,
@@ -134,64 +153,88 @@ export default function Sidebar({
         )}
 
         {/* Per-channel items */}
-        {channels.map((channel) => (
-          <div
-            key={channel.id}
-            className={`relative flex items-center group cursor-pointer transition-colors duration-100 ${
-              selectedChannelId === channel.id
-                ? 'bg-blue-600/20 border-r-2 border-blue-500'
-                : 'hover:bg-zinc-800'
-            }`}
-            onClick={() => onSelect(channel.id)}
-            onMouseEnter={() => setHoveredId(channel.id)}
-            onMouseLeave={() => setHoveredId(null)}
-          >
-            <div className="flex-1 px-4 py-2.5 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <span
-                  className={`text-sm font-medium truncate ${
-                    selectedChannelId === channel.id ? 'text-blue-300' : 'text-zinc-300'
-                  }`}
-                  title={channel.name}
-                >
-                  {channel.name}
-                </span>
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full font-mono flex-shrink-0 ${
-                    selectedChannelId === channel.id
-                      ? 'bg-blue-600/40 text-blue-300'
-                      : 'bg-zinc-700 text-zinc-400'
-                  }`}
-                >
-                  {visibleCountByChannel[channel.id] ?? channel.video_count ?? 0}
-                </span>
+        {channels.map((channel) => {
+          const isSubscribed = channel.subscribed !== 0;
+          return (
+            <div
+              key={channel.id}
+              className={`relative flex items-center group cursor-pointer transition-colors duration-100 ${
+                selectedChannelId === channel.id
+                  ? 'bg-blue-600/20 border-r-2 border-blue-500'
+                  : 'hover:bg-zinc-800'
+              }`}
+              onClick={() => onSelect(channel.id)}
+              onMouseEnter={() => setHoveredId(channel.id)}
+              onMouseLeave={() => setHoveredId(null)}
+            >
+              <div className="flex-1 px-4 py-2.5 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {!isSubscribed && (
+                      <span className="text-xs text-amber-500 flex-shrink-0" title="Unsubscribed — not polling for new videos">⏸</span>
+                    )}
+                    <span
+                      className={`text-sm font-medium truncate ${
+                        selectedChannelId === channel.id
+                          ? 'text-blue-300'
+                          : isSubscribed ? 'text-zinc-300' : 'text-zinc-500'
+                      }`}
+                      title={channel.name}
+                    >
+                      {channel.name}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-full font-mono flex-shrink-0 ${
+                      selectedChannelId === channel.id
+                        ? 'bg-blue-600/40 text-blue-300'
+                        : 'bg-zinc-700 text-zinc-400'
+                    }`}
+                  >
+                    {visibleCountByChannel[channel.id] ?? channel.video_count ?? 0}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* Action buttons — only for admins, visible on hover */}
-            {isAdmin && hoveredId === channel.id && (
-              <div className="flex items-center gap-1 pr-3 flex-shrink-0">
-                <button
-                  onClick={(e) => handleRefresh(e, channel.id)}
-                  disabled={refreshingId === channel.id}
-                  title="Refresh channel"
-                  className={`p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors ${
-                    refreshingId === channel.id ? 'animate-spin text-blue-400' : ''
-                  }`}
-                >
-                  <RefreshIcon />
-                </button>
-                <button
-                  onClick={(e) => handleDelete(e, channel.id)}
-                  title="Remove channel"
-                  className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-700 transition-colors"
-                >
-                  <TrashIcon />
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+              {/* Action buttons — only for admins, visible on hover */}
+              {isAdmin && hoveredId === channel.id && (
+                <div className="flex items-center gap-1 pr-3 flex-shrink-0">
+                  {isSubscribed && (
+                    <Tip label="Fetch new videos now">
+                      <button
+                        onClick={(e) => handleRefresh(e, channel.id)}
+                        disabled={refreshingId === channel.id}
+                        className={`p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors ${
+                          refreshingId === channel.id ? 'animate-spin text-blue-400' : ''
+                        }`}
+                      >
+                        <RefreshIcon />
+                      </button>
+                    </Tip>
+                  )}
+                  <Tip label={isSubscribed ? 'Unsubscribe (keep videos, stop polling)' : 'Subscribe (resume polling)'}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onToggleSubscription(channel.id, !isSubscribed); }}
+                      className={`p-1 rounded hover:bg-zinc-700 transition-colors ${
+                        isSubscribed ? 'text-zinc-500 hover:text-amber-400' : 'text-amber-500 hover:text-emerald-400'
+                      }`}
+                    >
+                      {isSubscribed ? <UnsubscribeIcon /> : <ResubscribeIcon />}
+                    </button>
+                  </Tip>
+                  <Tip label="Remove channel and all videos">
+                    <button
+                      onClick={(e) => handleDelete(e, channel.id)}
+                      className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </Tip>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* Empty state */}
         {channels.length === 0 && !loading && (

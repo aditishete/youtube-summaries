@@ -33,7 +33,7 @@ function buildVideoRecsText(data) {
   return parts.join('. ');
 }
 
-export default function VideoCard({ video, onUpdated, speakingId, onSpeak, isAdmin }) {
+export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSpeak, isAdmin }) {
   const [imgError, setImgError] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
 
@@ -140,13 +140,24 @@ export default function VideoCard({ video, onUpdated, speakingId, onSpeak, isAdm
             )}
           </div>
           {analyzed_at && !reanalyzing && isAdmin && (
-            <button
-              onClick={handleReanalyze}
-              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors self-end"
-              title="Re-analyze with transcript"
-            >
-              ↻ re-analyze
-            </button>
+            <div className="flex items-center gap-3 self-end">
+              <button
+                onClick={handleReanalyze}
+                className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+                title="Re-run Claude analysis using the video transcript"
+              >
+                ↻ re-analyze
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm(`Delete "${title}" from the database?`)) onDelete?.(id);
+                }}
+                className="text-xs text-zinc-600 hover:text-red-400 transition-colors"
+                title="Permanently delete this video from the database"
+              >
+                ✕ delete
+              </button>
+            </div>
           )}
         </div>
 

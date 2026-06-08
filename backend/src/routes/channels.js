@@ -162,6 +162,27 @@ router.post('/', requireAdmin, async (req, res) => {
   }
 });
 
+// PATCH /api/channels/:id — toggle subscription
+router.patch('/:id', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subscribed } = req.body || {};
+    if (typeof subscribed !== 'boolean') {
+      return res.status(400).json({ error: 'subscribed (boolean) is required' });
+    }
+    const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(id);
+    if (!channel) return res.status(404).json({ error: 'Channel not found' });
+    db.prepare('UPDATE channels SET subscribed = ? WHERE id = ?').run(subscribed ? 1 : 0, id);
+    db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(
+      req.user.id, subscribed ? 'subscribe_channel' : 'unsubscribe_channel', channel.name
+    );
+    res.json({ ...channel, subscribed: subscribed ? 1 : 0 });
+  } catch (err) {
+    console.error('PATCH /channels/:id error:', err);
+    res.status(500).json({ error: 'Failed to update channel' });
+  }
+});
+
 // DELETE /api/channels/:id
 router.delete('/:id', requireAdmin, (req, res) => {
   try {

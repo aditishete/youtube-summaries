@@ -187,6 +187,17 @@ export const getAnalytics = async () => {
   return data;
 };
 
+export const setChannelSubscription = async (id, subscribed) => {
+  const res = await apiFetch(`${BASE}/channels/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subscribed }),
+  });
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Failed to update channel');
+  return data;
+};
+
 export const getActionLog = async () => {
   const res = await apiFetch(`${BASE}/analytics/action-log`);
   const data = await safeJSON(res);

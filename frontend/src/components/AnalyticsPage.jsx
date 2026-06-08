@@ -78,11 +78,13 @@ function mergeTimeseries(ts) {
 }
 
 const ACTION_LABELS = {
-  add_channel:    { label: 'Add Channel',    color: 'text-emerald-400' },
-  delete_channel: { label: 'Delete Channel', color: 'text-red-400'     },
-  refresh_channel:{ label: 'Refresh Channel',color: 'text-blue-400'    },
-  reanalyze_video:{ label: 'Reanalyze Video',color: 'text-violet-400'  },
-  summarize_video:{ label: 'Summarize Video',color: 'text-amber-400'   },
+  add_channel:         { label: 'Add Channel',      color: 'text-emerald-400' },
+  delete_channel:      { label: 'Delete Channel',   color: 'text-red-400'     },
+  refresh_channel:     { label: 'Refresh Channel',  color: 'text-blue-400'    },
+  unsubscribe_channel: { label: 'Unsubscribe',      color: 'text-amber-400'   },
+  subscribe_channel:   { label: 'Resubscribe',      color: 'text-emerald-400' },
+  reanalyze_video:     { label: 'Reanalyze Video',  color: 'text-violet-400'  },
+  summarize_video:     { label: 'Summarize Video',  color: 'text-zinc-300'    },
 };
 
 export default function AnalyticsPage({ onBack, onLogout }) {
