@@ -163,7 +163,7 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 // PATCH /api/channels/:id — toggle subscription
-router.patch('/:id', requireAdmin, (req, res) => {
+router.patch('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { subscribed } = req.body || {};
@@ -172,11 +172,49 @@ router.patch('/:id', requireAdmin, (req, res) => {
     }
     const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(id);
     if (!channel) return res.status(404).json({ error: 'Channel not found' });
+
     db.prepare('UPDATE channels SET subscribed = ? WHERE id = ?').run(subscribed ? 1 : 0, id);
     db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(
       req.user.id, subscribed ? 'subscribe_channel' : 'unsubscribe_channel', channel.name
     );
-    res.json({ ...channel, subscribed: subscribed ? 1 : 0 });
+
+    // On resubscribe, catch up on any videos missed in the last 2 days
+    let added = 0;
+    if (subscribed) {
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+      const { channelName, items } = await fetchChannelVideos(channel.youtube_id, MAX_INITIAL_FETCH_PER_CHANNEL, twoDaysAgo);
+
+      for (const item of items) {
+        const existing = db.prepare('SELECT id FROM videos WHERE youtube_id = ?').get(item.videoId);
+        if (existing) continue;
+
+        const videoResult = db.prepare(`
+          INSERT OR IGNORE INTO videos (channel_id, youtube_id, title, description, url, thumbnail_url, published_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(channel.id, item.videoId, item.title, item.description || '', item.url, item.thumbnail, item.publishedAt);
+
+        if (videoResult.changes === 0) continue;
+
+        added++;
+        try {
+          const transcript = await fetchTranscript(item.videoId);
+          const analysis = await analyzeVideo(
+            { title: item.title, description: item.description, transcript, published_at: item.publishedAt },
+            channelName
+          );
+          db.prepare(`
+            UPDATE videos SET summary = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP WHERE id = ?
+          `).run(analysis.summary, JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), videoResult.lastInsertRowid);
+        } catch (analysisErr) {
+          console.error(`Error analyzing video ${item.videoId}:`, analysisErr.message);
+        }
+      }
+
+      db.prepare('UPDATE channels SET last_fetched_at = CURRENT_TIMESTAMP WHERE id = ?').run(channel.id);
+      pruneChannelVideos(channel.id);
+    }
+
+    res.json({ ...channel, subscribed: subscribed ? 1 : 0, added });
   } catch (err) {
     console.error('PATCH /channels/:id error:', err);
     res.status(500).json({ error: 'Failed to update channel' });
