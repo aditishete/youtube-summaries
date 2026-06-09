@@ -118,7 +118,7 @@ async function pollChannels(limit = 10) {
 }
 
 export function startScheduler() {
-  const interval = parseInt(process.env.POLL_INTERVAL_MINUTES || '30', 10);
+  const interval = parseInt(process.env.POLL_INTERVAL_MINUTES || '10', 10);
   const cronExpression = `*/${interval} * * * *`;
 
   console.log(`[Scheduler] Starting — polling every ${interval} minute(s). Cron: ${cronExpression}`);

@@ -83,9 +83,10 @@ describe('POST /api/summarize', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
     expect(res.status).toBe(200);
-    expect(res.body.summary).toBe('Test summary.');
-    expect(res.body.keyPoints).toEqual(['Point 1', 'Point 2']);
-    expect(res.body.videoId).toBe('dQw4w9WgXcQ');
+    expect(res.body.status).toBe('done');
+    expect(res.body.result.summary).toBe('Test summary.');
+    expect(res.body.result.keyPoints).toEqual(['Point 1', 'Point 2']);
+    expect(res.body.result.videoId).toBe('dQw4w9WgXcQ');
   });
 
   it('returns tickers and trade_signals in response', async () => {
@@ -95,11 +96,12 @@ describe('POST /api/summarize', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.tickers)).toBe(true);
-    expect(Array.isArray(res.body.trade_signals)).toBe(true);
-    expect(Array.isArray(res.body.recommendations)).toBe(true);
-    expect(res.body.tickers).toContain('AAPL');
-    expect(res.body.trade_signals[0].signal).toBe('BUY');
+    expect(res.body.status).toBe('done');
+    expect(Array.isArray(res.body.result.tickers)).toBe(true);
+    expect(Array.isArray(res.body.result.trade_signals)).toBe(true);
+    expect(Array.isArray(res.body.result.recommendations)).toBe(true);
+    expect(res.body.result.tickers).toContain('AAPL');
+    expect(res.body.result.trade_signals[0].signal).toBe('BUY');
   });
 
   it('returns published_at in response', async () => {
@@ -109,7 +111,8 @@ describe('POST /api/summarize', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('published_at');
+    expect(res.body.status).toBe('done');
+    expect(res.body.result).toHaveProperty('published_at');
   });
 
   it('saves summary to history', async () => {

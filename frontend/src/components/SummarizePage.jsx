@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { summarizeVideo, getSummaryHistory, deleteSummaryItem } from '../api.js';
+import { summarizeVideo, getBriefStatus, getSummaryHistory, deleteSummaryItem } from '../api.js';
+
+const BRIEF_POLL_INTERVAL_MS  = 5000;
+const BRIEF_MAX_POLL_ATTEMPTS = 5;
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 import SignalBadge from './SignalBadge.jsx';
 import { useSpeech, SpeakButton } from './SpeakButton.jsx';
 
@@ -236,6 +241,7 @@ function Recommendations({ tickers, tradeSignals, recommendations, large }) {
 export default function SummarizePage({ onBack, onLogout, isGuest }) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -263,6 +269,18 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
     }
   }
 
+  function addResultToHistory(result) {
+    const entry = {
+      ...result,
+      keyPoints:       result.keyPoints       || [],
+      tickers:         result.tickers         || [],
+      trade_signals:   result.trade_signals   || [],
+      recommendations: result.recommendations || [],
+      created_at:      result.created_at      || new Date().toISOString(),
+    };
+    setHistory((prev) => [entry, ...prev].slice(0, 20));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     const trimmed = url.trim();
@@ -274,16 +292,62 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
     }
 
     setLoading(true);
+    setLoadingMessage('Fetching transcript & summarizing… this usually takes 5–10 seconds.');
     setError(null);
 
     try {
       const data = await summarizeVideo(trimmed);
-      const entry = { ...data, keyPoints: data.keyPoints, tickers: data.tickers || [], trade_signals: data.trade_signals || [], recommendations: data.recommendations || [], created_at: new Date().toISOString() };
-      setHistory((prev) => [entry, ...prev].slice(0, 20));
-      setUrl('');
+
+      if (data.status === 'done') {
+        addResultToHistory(data.result);
+        setUrl('');
+        setLoading(false);
+        return;
+      }
+
+      if (data.status === 'failed') {
+        setError(data.error || 'Summarization failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      // status === 'pending' — start polling
+      const { jobId } = data;
+      setLoadingMessage('This is taking longer than expected — checking back shortly…');
+
+      for (let attempt = 1; attempt <= BRIEF_MAX_POLL_ATTEMPTS; attempt++) {
+        await sleep(BRIEF_POLL_INTERVAL_MS);
+
+        let statusData;
+        try {
+          statusData = await getBriefStatus(jobId);
+        } catch (err) {
+          setError(err.message || 'Failed to check brief status. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        if (statusData.status === 'done') {
+          addResultToHistory(statusData.result);
+          setUrl('');
+          setLoading(false);
+          return;
+        }
+
+        if (statusData.status === 'failed') {
+          setError(statusData.error || 'Summarization failed. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        setLoadingMessage(`Still working… (check ${attempt} of ${BRIEF_MAX_POLL_ATTEMPTS})`);
+      }
+
+      setError('Brief generation is taking too long. Please try again later.');
+      setLoading(false);
+
     } catch (err) {
       setError(err.message || 'Summarization failed. Please try again.');
-    } finally {
       setLoading(false);
     }
   }
@@ -359,7 +423,7 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
             {loading && (
               <div className="mt-4 flex items-center gap-3 text-base text-zinc-300">
                 <div className="w-4 h-4 border-2 border-zinc-600 border-t-violet-500 rounded-full animate-spin flex-shrink-0" />
-                Fetching transcript &amp; summarizing… this usually takes 5–10 seconds.
+                {loadingMessage}
               </div>
             )}
           </div>

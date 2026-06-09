@@ -9,7 +9,7 @@ primary_region = 'iad'
 
 [env]
   PORT = '3001'
-  POLL_INTERVAL_MINUTES = '30'
+  POLL_INTERVAL_MINUTES = '10'
 
 [http_service]
   internal_port = 3001

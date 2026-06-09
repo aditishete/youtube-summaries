@@ -5,6 +5,9 @@ const parser = new Parser({
     feed: [['yt:channelId', 'channelId']],
     item: [['yt:videoId', 'videoId'], ['media:group', 'mediaGroup']],
   },
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  },
 });
 
 /**
@@ -77,7 +80,13 @@ export async function fetchChannelVideos(channelId, limit = 5, sinceDate = null)
   try {
     feed = await parser.parseURL(feedUrl);
   } catch (err) {
-    throw new Error(`Failed to fetch RSS feed for channel ${channelId}: ${err.message}`);
+    // Retry once after 5s — YouTube occasionally returns transient 404/500 from cloud IPs
+    await new Promise(r => setTimeout(r, 5000));
+    try {
+      feed = await parser.parseURL(feedUrl);
+    } catch (retryErr) {
+      throw new Error(`Failed to fetch RSS feed for channel ${channelId}: ${retryErr.message}`);
+    }
   }
 
   const channelName = feed.title || 'Unknown Channel';

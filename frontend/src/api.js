@@ -135,6 +135,14 @@ export const summarizeVideo = async (url) => {
   });
   const data = await safeJSON(res);
   if (!res.ok) throw new Error(data.error || 'Summarization failed');
+  // Returns { status: 'done', result } | { status: 'pending', jobId } | { status: 'failed', error }
+  return data;
+};
+
+export const getBriefStatus = async (jobId) => {
+  const res = await apiFetch(`${BASE}/summarize/status/${jobId}`);
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Failed to check brief status');
   return data;
 };
 

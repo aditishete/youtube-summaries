@@ -191,6 +191,20 @@ db.exec(`
   )
 `);
 
+// Async summary jobs — only written when a job exceeds the inline timeout
+db.exec(`
+  CREATE TABLE IF NOT EXISTS summary_jobs (
+    id          TEXT PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    url         TEXT NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending',
+    result      TEXT,
+    error       TEXT,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Close DB cleanly so node --watch restarts don't hit "database is locked"
 function closeDb() {
   try { _db.close(); } catch (_) {}

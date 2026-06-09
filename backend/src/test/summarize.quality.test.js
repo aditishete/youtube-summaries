@@ -29,7 +29,8 @@ describe.skipIf(!HAS_API_KEY)('Summarization quality — QQWouCIEAtk (selling op
       .timeout(60000);
 
     expect(res.status, `Summarize failed: ${JSON.stringify(res.body)}`).toBe(200);
-    result = res.body;
+    expect(res.body.status, `Expected done, got: ${JSON.stringify(res.body)}`).toBe('done');
+    result = res.body.result;
     console.log('tickers returned:', result.tickers);
     console.log('trade_signals returned:', JSON.stringify(result.trade_signals, null, 2));
   }, 65000);

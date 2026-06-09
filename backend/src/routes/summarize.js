@@ -1,4 +1,8 @@
 import { Router } from 'express';
+import { randomUUID } from 'crypto';
+import { appendFileSync, mkdirSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { fetchTranscript } from '../transcript.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -7,6 +11,23 @@ import db from '../db.js';
 const router = Router();
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// ── Config ────────────────────────────────────────────────────────────────────
+const BRIEF_INLINE_TIMEOUT_MS = parseInt(process.env.BRIEF_INLINE_TIMEOUT_MS || '60000', 10);
+const BRIEF_JOB_TTL_MINUTES   = parseInt(process.env.BRIEF_JOB_TTL_MINUTES   || '10',    10);
+
+// ── Logging ───────────────────────────────────────────────────────────────────
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dataDir   = process.env.DB_PATH ? dirname(process.env.DB_PATH) : join(__dirname, '../../data');
+const logPath   = join(dataDir, 'videobriefs.log');
+mkdirSync(dataDir, { recursive: true });
+
+function briefLog(jobId, userId, url, phase, error) {
+  const entry = JSON.stringify({ ts: new Date().toISOString(), jobId, userId, url, phase, error });
+  try { appendFileSync(logPath, entry + '\n'); } catch (_) {}
+  console.error(`[VideoBrief] job=${jobId} phase=${phase}: ${error}`);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function extractVideoId(url) {
   const patterns = [
     /[?&]v=([a-zA-Z0-9_-]{11})/,
@@ -47,38 +68,48 @@ async function fetchVideoPublishedAt(videoId) {
   }
 }
 
-// POST /api/summarize
-router.post('/', requireAuth, async (req, res) => {
-  if (req.user.guestMode) return res.status(403).json({ error: 'Video briefs are not available in guest mode. Please register for an account.' });
-  const { url } = req.body || {};
-  if (!url) return res.status(400).json({ error: 'url is required' });
-
-  const videoId = extractVideoId(url.trim());
-  if (!videoId) return res.status(400).json({ error: 'Could not extract a video ID from that URL.' });
-
-  const transcript = await fetchTranscript(videoId);
-  if (!transcript) return res.status(422).json({ error: 'No transcript available for this video. It may be private, age-restricted, or have captions disabled.' });
-
-  const [{ title, thumbnail }, published_at] = await Promise.all([
-    fetchVideoMeta(videoId),
-    fetchVideoPublishedAt(videoId),
-  ]);
-
+// ── Core job runner ───────────────────────────────────────────────────────────
+// Always resolves — never rejects. Returns { ok, result } or { ok, error }.
+async function runSummarizeJob(jobId, userId, url, videoId) {
   try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
-      system: [
-        {
-          type: 'text',
-          text: 'You summarize YouTube video transcripts clearly and concisely in English.',
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: [
-        {
-          role: 'user',
-          content: `Summarize this YouTube video transcript.
+    // Phase: transcript
+    let transcript;
+    try {
+      transcript = await fetchTranscript(videoId);
+    } catch (err) {
+      briefLog(jobId, userId, url, 'transcript', err.message);
+      await markJobFailed(jobId, 'Failed to fetch transcript.');
+      return { ok: false, error: 'Failed to fetch transcript.' };
+    }
+    if (!transcript) {
+      briefLog(jobId, userId, url, 'transcript', 'No transcript available');
+      await markJobFailed(jobId, 'No transcript available for this video. It may be private, age-restricted, or have captions disabled.');
+      return { ok: false, error: 'No transcript available for this video. It may be private, age-restricted, or have captions disabled.' };
+    }
+
+    // Phase: metadata
+    const [{ title, thumbnail }, published_at] = await Promise.all([
+      fetchVideoMeta(videoId),
+      fetchVideoPublishedAt(videoId),
+    ]);
+
+    // Phase: AI summarization
+    let aiResponse;
+    try {
+      aiResponse = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        system: [
+          {
+            type: 'text',
+            text: 'You summarize YouTube video transcripts clearly and concisely in English.',
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        messages: [
+          {
+            role: 'user',
+            content: `Summarize this YouTube video transcript.
 
 Title: ${title || 'Unknown'}
 Transcript:
@@ -108,23 +139,28 @@ Rules:
 - Only emit a signal when the speaker makes a real directional commitment, not just a mention
 - recommendations: 3-5 specific, actionable things the viewer should do based on this video — only for self-help, health, diet, fitness, productivity, or lifestyle videos; empty array for investment/finance videos or videos with no actionable viewer advice
 - Write in English regardless of the transcript language`,
-        },
-      ],
-    });
+          },
+        ],
+      });
+    } catch (err) {
+      briefLog(jobId, userId, url, 'ai', err.message);
+      await markJobFailed(jobId, 'AI summarization failed.');
+      return { ok: false, error: 'AI summarization failed.' };
+    }
 
-    const text = response.content?.[0]?.text || '';
-
-    // Extract the JSON object robustly — find the first { and last }
+    // Phase: parse AI response
+    const text = aiResponse.content?.[0]?.text || '';
     const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
+    const end   = text.lastIndexOf('}');
     const cleaned = start !== -1 && end !== -1 ? text.slice(start, end + 1) : text.trim();
 
     let parsed;
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      console.error('Failed to parse AI response. Raw text:', text.slice(0, 500));
-      return res.status(500).json({ error: 'Failed to parse AI response.' });
+      briefLog(jobId, userId, url, 'parse', `Bad JSON from AI: ${text.slice(0, 200)}`);
+      await markJobFailed(jobId, 'Failed to parse AI response.');
+      return { ok: false, error: 'Failed to parse AI response.' };
     }
 
     const result = {
@@ -133,35 +169,112 @@ Rules:
       thumbnail: thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
       url: `https://www.youtube.com/watch?v=${videoId}`,
       published_at: published_at || null,
-      summary: parsed.summary || '',
-      keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints : [],
-      tickers: Array.isArray(parsed.tickers) ? parsed.tickers : [],
-      trade_signals: Array.isArray(parsed.trade_signals) ? parsed.trade_signals : [],
+      summary:         parsed.summary      || '',
+      keyPoints:       Array.isArray(parsed.keyPoints)     ? parsed.keyPoints     : [],
+      tickers:         Array.isArray(parsed.tickers)       ? parsed.tickers       : [],
+      trade_signals:   Array.isArray(parsed.trade_signals) ? parsed.trade_signals : [],
       recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
     };
 
-    // Save to history and prune to last 20 for this user
+    // Persist to user_summaries
     const { lastInsertRowid } = db.prepare(`
       INSERT INTO user_summaries (user_id, youtube_id, title, thumbnail, url, published_at, summary, key_points, tickers, trade_signals, recommendations)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(req.user.id, result.videoId, result.title, result.thumbnail, result.url, result.published_at, result.summary, JSON.stringify(result.keyPoints), JSON.stringify(result.tickers), JSON.stringify(result.trade_signals), JSON.stringify(result.recommendations));
+    `).run(
+      userId, result.videoId, result.title, result.thumbnail, result.url, result.published_at,
+      result.summary, JSON.stringify(result.keyPoints), JSON.stringify(result.tickers),
+      JSON.stringify(result.trade_signals), JSON.stringify(result.recommendations)
+    );
 
     db.prepare(`
       DELETE FROM user_summaries
       WHERE user_id = ? AND id NOT IN (
         SELECT id FROM user_summaries WHERE user_id = ? ORDER BY created_at DESC LIMIT 20
       )
-    `).run(req.user.id, req.user.id);
-    db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'summarize_video', result.title || result.url);
+    `).run(userId, userId);
 
-    res.json({ ...result, id: lastInsertRowid });
+    db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)')
+      .run(userId, 'summarize_video', result.title || result.url);
+
+    const fullResult = { ...result, id: lastInsertRowid };
+
+    // Update DB job record if one was written (async path)
+    const existing = db.prepare('SELECT id FROM summary_jobs WHERE id = ?').get(jobId);
+    if (existing) {
+      db.prepare(`
+        UPDATE summary_jobs SET status='done', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+      `).run(JSON.stringify(fullResult), jobId);
+    }
+
+    return { ok: true, result: fullResult };
+
   } catch (err) {
-    console.error('Summarize error:', err.message);
-    res.status(500).json({ error: 'AI summarization failed.' });
+    briefLog(jobId, userId, url, 'unexpected', err.message);
+    await markJobFailed(jobId, 'Unexpected error during summarization.');
+    return { ok: false, error: 'Unexpected error during summarization.' };
   }
+}
+
+function markJobFailed(jobId, error) {
+  try {
+    const existing = db.prepare('SELECT id FROM summary_jobs WHERE id = ?').get(jobId);
+    if (existing) {
+      db.prepare(`
+        UPDATE summary_jobs SET status='failed', error=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+      `).run(error, jobId);
+    }
+  } catch (_) {}
+}
+
+// ── Routes ────────────────────────────────────────────────────────────────────
+
+// POST /api/summarize
+router.post('/', requireAuth, async (req, res) => {
+  if (req.user.guestMode) {
+    return res.status(403).json({ error: 'Video briefs are not available in guest mode. Please register for an account.' });
+  }
+  const { url } = req.body || {};
+  if (!url) return res.status(400).json({ error: 'url is required' });
+
+  const videoId = extractVideoId(url.trim());
+  if (!videoId) return res.status(400).json({ error: 'Could not extract a video ID from that URL.' });
+
+  // Prune expired jobs
+  const cutoff = new Date(Date.now() - BRIEF_JOB_TTL_MINUTES * 60 * 1000).toISOString();
+  db.prepare('DELETE FROM summary_jobs WHERE created_at < ?').run(cutoff);
+
+  const jobId = randomUUID();
+
+  const jobPromise = runSummarizeJob(jobId, req.user.id, url.trim(), videoId);
+
+  const winner = await Promise.race([
+    jobPromise,
+    new Promise(resolve => setTimeout(() => resolve(null), BRIEF_INLINE_TIMEOUT_MS)),
+  ]);
+
+  if (winner === null) {
+    // Job is still running — persist to DB and tell frontend to poll
+    briefLog(jobId, req.user.id, url.trim(), 'timeout', `Exceeded inline timeout of ${BRIEF_INLINE_TIMEOUT_MS}ms`);
+    db.prepare('INSERT INTO summary_jobs (id, user_id, url, status) VALUES (?, ?, ?, ?)').run(jobId, req.user.id, url.trim(), 'pending');
+    // Ensure any late rejection is caught so it doesn't become an unhandled promise rejection
+    jobPromise.catch(err => briefLog(jobId, req.user.id, url.trim(), 'unexpected', err.message));
+    return res.json({ status: 'pending', jobId });
+  }
+
+  if (winner.ok) return res.json({ status: 'done', result: winner.result });
+  return res.json({ status: 'failed', error: winner.error });
 });
 
-// GET /api/summarize/history — last 20 summaries for the logged-in user
+// GET /api/summarize/status/:jobId
+router.get('/status/:jobId', requireAuth, (req, res) => {
+  const job = db.prepare('SELECT * FROM summary_jobs WHERE id = ? AND user_id = ?').get(req.params.jobId, req.user.id);
+  if (!job) return res.status(404).json({ error: 'Job not found.' });
+  if (job.status === 'pending') return res.json({ status: 'pending' });
+  if (job.status === 'done') return res.json({ status: 'done', result: JSON.parse(job.result) });
+  return res.json({ status: 'failed', error: job.error || 'Summarization failed.' });
+});
+
+// GET /api/summarize/history
 router.get('/history', requireAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT * FROM user_summaries
@@ -172,9 +285,9 @@ router.get('/history', requireAuth, (req, res) => {
 
   const history = rows.map((r) => ({
     ...r,
-    keyPoints: (() => { try { return JSON.parse(r.key_points || '[]'); } catch { return []; } })(),
-    tickers: (() => { try { return JSON.parse(r.tickers || '[]'); } catch { return []; } })(),
-    trade_signals: (() => { try { return JSON.parse(r.trade_signals || '[]'); } catch { return []; } })(),
+    keyPoints:       (() => { try { return JSON.parse(r.key_points   || '[]'); } catch { return []; } })(),
+    tickers:         (() => { try { return JSON.parse(r.tickers       || '[]'); } catch { return []; } })(),
+    trade_signals:   (() => { try { return JSON.parse(r.trade_signals || '[]'); } catch { return []; } })(),
     recommendations: (() => { try { return JSON.parse(r.recommendations || '[]'); } catch { return []; } })(),
     published_at: r.published_at || null,
   }));

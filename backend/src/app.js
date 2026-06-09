@@ -12,6 +12,7 @@ const isTest = process.env.NODE_ENV === 'test';
 
 export function createApp({ testRateLimits = {} } = {}) {
   const app = express();
+  app.set('trust proxy', 1); // Fly.io sits behind one proxy layer
 
   const makeLimit = (key, windowMs, max, message) => rateLimit({
     windowMs,
