@@ -32,13 +32,19 @@ router.get('/', requireAuth, (req, res) => {
         LIMIT ? OFFSET ?
       `).all(channelId, limit, offset);
     } else {
-      // All channels: top 3 analyzed videos per channel using window function, sorted by date
+      // All channels: top 3 analyzed videos per channel, deduped by title first, sorted by date
       rows = db.prepare(`
         SELECT v.*, c.name AS channel_name
         FROM (
-          SELECT *, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY published_at DESC) AS rn
-          FROM videos
-          WHERE analysis_status = 'done'
+          SELECT *,
+            ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY published_at DESC) AS rn
+          FROM (
+            SELECT *,
+              ROW_NUMBER() OVER (PARTITION BY channel_id, title ORDER BY published_at DESC) AS title_rn
+            FROM videos
+            WHERE analysis_status = 'done'
+          ) deduped
+          WHERE title_rn = 1
         ) v
         JOIN channels c ON c.id = v.channel_id
         WHERE v.rn <= 3
