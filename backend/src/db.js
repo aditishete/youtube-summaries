@@ -191,6 +191,11 @@ db.exec(`
   )
 `);
 
+// Add analysis_status to videos — tracks pipeline state per video
+try { db.exec("ALTER TABLE videos ADD COLUMN analysis_status TEXT NOT NULL DEFAULT 'pending'"); } catch (_) {}
+// Backfill: videos that already have analyzed_at set are done
+try { db.exec("UPDATE videos SET analysis_status = 'done' WHERE analyzed_at IS NOT NULL AND analysis_status = 'pending'"); } catch (_) {}
+
 // Async summary jobs — only written when a job exceeds the inline timeout
 db.exec(`
   CREATE TABLE IF NOT EXISTS summary_jobs (

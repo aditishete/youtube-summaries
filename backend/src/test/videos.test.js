@@ -12,11 +12,13 @@ function insertChannel(youtubeId = 'UC123', name = 'Test Channel') {
   return db.prepare('SELECT * FROM channels ORDER BY id DESC LIMIT 1').get();
 }
 
-function insertVideo(channelId, youtubeId = 'vid001', title = 'Test Video') {
+function insertVideo(channelId, youtubeId = 'vid001', title = 'Test Video', { analyzed = true } = {}) {
   db.prepare(`
-    INSERT INTO videos (channel_id, youtube_id, title, url, published_at)
-    VALUES (?, ?, ?, ?, '2024-01-01T00:00:00Z')
-  `).run(channelId, youtubeId, title, `https://www.youtube.com/watch?v=${youtubeId}`);
+    INSERT INTO videos (channel_id, youtube_id, title, url, published_at, analysis_status, analyzed_at)
+    VALUES (?, ?, ?, ?, '2024-01-01T00:00:00Z', ?, ?)
+  `).run(channelId, youtubeId, title, `https://www.youtube.com/watch?v=${youtubeId}`,
+    analyzed ? 'done' : 'pending',
+    analyzed ? '2024-01-01T00:00:00Z' : null);
   return db.prepare('SELECT * FROM videos ORDER BY id DESC LIMIT 1').get();
 }
 

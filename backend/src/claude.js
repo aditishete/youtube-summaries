@@ -1,12 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const MARKET_BRIEF_AI_TIMEOUT_MS = parseInt(process.env.MARKET_BRIEF_AI_TIMEOUT_MS || '45000', 10);
 
 /**
  * Analyzes a YouTube video using its transcript (preferred) or description.
- * Returns { summary, tickers, trade_signals }.
+ * Returns { summary, tickers, trade_signals } on success.
+ * Throws an Error with a `phase` property ('ai', 'timeout', 'parse') on failure.
  */
 export async function analyzeVideo(video, channelName) {
   const content = video.transcript?.trim()
@@ -39,8 +40,9 @@ Rules:
   * "Sold puts on AAPL" → { ticker: "AAPL", signal: "BUY", reasoning: "sold puts — bullish, willing to own at strike" }
 - Only emit a signal when the speaker makes a real directional commitment, not just a mention`;
 
+  let response;
   try {
-    const response = await client.messages.create({
+    response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: [
@@ -51,24 +53,29 @@ Rules:
         },
       ],
       messages: [{ role: 'user', content: userPrompt }],
-    });
-
-    const text = response.content?.[0]?.text || '';
-    const cleaned = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-
-    try {
-      const parsed = JSON.parse(cleaned);
-      return {
-        summary: parsed.summary || '',
-        tickers: Array.isArray(parsed.tickers) ? parsed.tickers : [],
-        trade_signals: Array.isArray(parsed.trade_signals) ? parsed.trade_signals : [],
-      };
-    } catch {
-      console.error('Claude returned non-JSON:', text.slice(0, 200));
-      return { summary: '', tickers: [], trade_signals: [] };
-    }
+    }, { signal: AbortSignal.timeout(MARKET_BRIEF_AI_TIMEOUT_MS) });
   } catch (err) {
-    console.error('Claude API error:', err.status ?? '', err.message);
-    return { summary: '', tickers: [], trade_signals: [] };
+    const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError';
+    const e = new Error(isTimeout
+      ? `AI call timed out after ${MARKET_BRIEF_AI_TIMEOUT_MS}ms`
+      : err.message);
+    e.phase = isTimeout ? 'timeout' : 'ai';
+    throw e;
+  }
+
+  const text = response.content?.[0]?.text || '';
+  const cleaned = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    return {
+      summary:      parsed.summary || '',
+      tickers:      Array.isArray(parsed.tickers)      ? parsed.tickers      : [],
+      trade_signals: Array.isArray(parsed.trade_signals) ? parsed.trade_signals : [],
+    };
+  } catch {
+    const e = new Error(`Failed to parse AI response: ${text.slice(0, 200)}`);
+    e.phase = 'parse';
+    throw e;
   }
 }

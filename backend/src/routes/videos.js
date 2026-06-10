@@ -21,23 +21,24 @@ router.get('/', requireAuth, (req, res) => {
     let rows, total;
 
     if (channelId) {
-      // Single channel: return all videos paginated
-      const { count } = db.prepare('SELECT COUNT(*) as count FROM videos WHERE channel_id = ?').get(channelId);
+      // Single channel: return successfully analyzed videos paginated
+      const { count } = db.prepare("SELECT COUNT(*) as count FROM videos WHERE channel_id = ? AND analysis_status = 'done'").get(channelId);
       total = count;
       rows = db.prepare(`
         SELECT v.*, c.name AS channel_name
         FROM videos v JOIN channels c ON c.id = v.channel_id
-        WHERE v.channel_id = ?
+        WHERE v.channel_id = ? AND v.analysis_status = 'done'
         ORDER BY v.published_at DESC
         LIMIT ? OFFSET ?
       `).all(channelId, limit, offset);
     } else {
-      // All channels: top 3 per channel using window function, sorted by date
+      // All channels: top 3 analyzed videos per channel using window function, sorted by date
       rows = db.prepare(`
         SELECT v.*, c.name AS channel_name
         FROM (
           SELECT *, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY published_at DESC) AS rn
           FROM videos
+          WHERE analysis_status = 'done'
         ) v
         JOIN channels c ON c.id = v.channel_id
         WHERE v.rn <= 3
@@ -75,6 +76,9 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
 
     if (!row) return res.status(404).json({ error: 'Video not found' });
 
+    // Reset to pending so this run counts as the authoritative attempt
+    db.prepare("UPDATE videos SET analysis_status = 'pending' WHERE id = ?").run(row.id);
+
     const transcript = await fetchTranscript(row.youtube_id);
     const analysis = await analyzeVideo(
       { title: row.title, description: row.description, transcript, published_at: row.published_at },
@@ -82,7 +86,7 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
     );
 
     db.prepare(`
-      UPDATE videos SET summary = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP
+      UPDATE videos SET summary = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
       WHERE id = ?
     `).run(analysis.summary, JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), row.id);
     db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'reanalyze_video', row.title);
@@ -90,9 +94,13 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
     res.json({
       ...analysis,
       analyzed_at: new Date().toISOString(),
-      had_transcript: transcript.length > 0,
+      had_transcript: !!transcript,
     });
   } catch (err) {
+    // Mark failed if the video record exists and analysis errored out
+    try {
+      db.prepare("UPDATE videos SET analysis_status = 'failed' WHERE id = ? AND analysis_status = 'pending'").run(req.params.id);
+    } catch (_) {}
     console.error('POST /videos/:id/reanalyze error:', err);
     res.status(500).json({ error: err.message });
   }
