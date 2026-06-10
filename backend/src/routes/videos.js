@@ -89,8 +89,11 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
     db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'reanalyze_video', row.title);
 
     res.json({
-      ...analysis,
-      analyzed_at: new Date().toISOString(),
+      summary:      analysis.summary,
+      key_points:   analysis.keyPoints || [],
+      tickers:      analysis.tickers,
+      trade_signals: analysis.trade_signals,
+      analyzed_at:  new Date().toISOString(),
       had_transcript: !!transcript,
     });
   } catch (err) {
