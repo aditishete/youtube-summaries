@@ -2,12 +2,11 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // Default run: unit and integration tests only — no real API calls
-    // src/test/*.test.js naturally excludes the quality/ subdirectory
-    include: ['src/test/*.test.js'],
+    include: ['src/test/quality/**/*.test.js'],
     setupFiles: ['./src/test/setup.js'],
     pool: 'forks',
     poolOptions: { forks: { singleFork: true } },
     reporters: ['verbose'],
+    testTimeout: 65000,
   },
 });

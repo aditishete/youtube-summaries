@@ -9,7 +9,8 @@ Backend tests are self-contained — they spin up an in-memory SQLite database a
 ### Requirements
 
 - Node.js 20+
-- `ANTHROPIC_API_KEY` in the environment — **only** for the quality test suite (all other tests mock the Claude API)
+- No server required — all external APIs are mocked
+- `ANTHROPIC_API_KEY` only needed for the quality suite (separate command, see below)
 
 ### Run all backend tests
 
@@ -18,6 +19,8 @@ cd backend
 npm test
 ```
 
+This runs **unit and integration tests only** — 6 test files, ~74 tests, ~10s. No real API calls. Quality tests in `src/test/quality/` are excluded from this command entirely.
+
 ### Run a specific test file
 
 ```bash
@@ -25,32 +28,47 @@ cd backend
 npx vitest run src/test/summarize.test.js
 ```
 
-### Quality tests (real Claude API + real YouTube)
+---
 
-`src/test/summarize.quality.test.js` calls the real Claude API and real YouTube transcript API to verify AI output quality (correct tickers, signal direction for options trades, etc.). These are automatically skipped when `ANTHROPIC_API_KEY` is not set.
+## Backend Quality Tests (real Claude API + real YouTube)
+
+Quality tests live in `src/test/quality/` and are **completely separate** from `npm test`. They make real calls to the Claude API and real YouTube transcript API, consuming API quota. **Do not run these unless explicitly requested.**
+
+### When to run
+
+- Verifying AI prompt output quality (correct tickers, trade signal direction)
+- After changes to prompts in `claude.js` or `routes/summarize.js`
+- Only on explicit request — never as part of a routine change verification
+
+### How to run
 
 ```bash
 cd backend
-ANTHROPIC_API_KEY=sk-ant-... npm test
+ANTHROPIC_API_KEY=sk-ant-... npm run test:quality
 ```
 
-To run quality tests in isolation:
+Without `ANTHROPIC_API_KEY` the suite loads but all 11 tests are skipped — no API calls are made:
 
 ```bash
-cd backend
-ANTHROPIC_API_KEY=sk-ant-... npx vitest run src/test/summarize.quality.test.js
+npm run test:quality   # safe to run — skips everything without the key
 ```
 
-### Test files
+### Test files — default suite (`npm test`)
 
 | File | What it covers |
 |---|---|
 | `src/test/auth.test.js` | Login, register, guest access, JWT validation |
 | `src/test/channels.test.js` | Add/delete/refresh channels, subscription toggle |
-| `src/test/videos.test.js` | Video feed, pagination, per-channel queries |
+| `src/test/videos.test.js` | Video feed, pagination, per-channel queries, analysis_status filtering |
 | `src/test/summarize.test.js` | Summarize endpoint (inline + async paths), history CRUD, job status polling |
 | `src/test/security.test.js` | Rate limiting, CORS, auth headers |
-| `src/test/summarize.quality.test.js` | Real AI output quality — requires `ANTHROPIC_API_KEY` |
+| `src/test/analytics.test.js` | Analytics endpoints, page views, timeseries |
+
+### Test files — quality suite (`npm run test:quality`)
+
+| File | What it covers |
+|---|---|
+| `src/test/quality/summarize.quality.test.js` | Real AI output — ticker extraction, BUY/SELL signal direction for options trades. Requires `ANTHROPIC_API_KEY`. |
 
 ---
 

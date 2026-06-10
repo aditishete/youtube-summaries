@@ -8,7 +8,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
-import { app, seedUsers, getToken, resetDB } from './helpers.js';
+import { app, seedUsers, getToken, resetDB } from '../helpers.js';
 
 const HAS_API_KEY = !!process.env.ANTHROPIC_API_KEY;
 

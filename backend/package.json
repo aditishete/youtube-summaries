@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:quality": "vitest run --config vitest.quality.config.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.26.0",
