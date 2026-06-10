@@ -49,10 +49,13 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
     thumbnail_url,
     published_at,
     summary,
+    key_points,
     tickers,
     trade_signals,
     analyzed_at,
   } = data;
+
+  const keyPoints = Array.isArray(key_points) ? key_points : [];
 
   const tickerList = Array.isArray(tickers) ? tickers : [];
   const signalList = Array.isArray(trade_signals) ? trade_signals : [];
@@ -134,6 +137,16 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
                   <SpeakButton id={`${id}-summary`} text={buildVideoSpeakText(data)} speakingId={speakingId} onSpeak={onSpeak} />
                 </div>
                 <p className="text-zinc-300 text-lg leading-relaxed">{summary}</p>
+                {keyPoints.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {keyPoints.map((pt, i) => (
+                      <li key={i} className="flex gap-2 text-zinc-400">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-violet-900/60 text-violet-400 text-xs flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
+                        <span className="text-base">{pt}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </>
             ) : (
               <span className="text-zinc-600 text-base italic">No summary available</span>

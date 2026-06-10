@@ -116,7 +116,7 @@ router.get('/', requireAdmin, (req, res) => {
     "SELECT count(*) as c FROM user_summaries WHERE created_at >= datetime('now', '-30 days')"
   ).get().c;
 
-  // Aggregate login counts
+  // Aggregate login counts (all users including guest)
   const loginsToday = db.prepare(
     `SELECT count(*) as c FROM user_logins WHERE date(logged_in_at${toLocal}) = ?`
   ).get(today).c;
@@ -126,6 +126,18 @@ router.get('/', requireAdmin, (req, res) => {
   const loginsMonth = db.prepare(
     "SELECT count(*) as c FROM user_logins WHERE logged_in_at >= datetime('now', '-30 days')"
   ).get().c;
+
+  // Guest visits — logins by the guest account specifically
+  const guestId = db.prepare("SELECT id FROM users WHERE username = 'guest'").get()?.id ?? -1;
+  const guestVisitsToday = db.prepare(
+    `SELECT count(*) as c FROM user_logins WHERE user_id = ? AND date(logged_in_at${toLocal}) = ?`
+  ).get(guestId, today).c;
+  const guestVisitsWeek = db.prepare(
+    "SELECT count(*) as c FROM user_logins WHERE user_id = ? AND logged_in_at >= datetime('now', '-7 days')"
+  ).get(guestId).c;
+  const guestVisitsMonth = db.prepare(
+    "SELECT count(*) as c FROM user_logins WHERE user_id = ? AND logged_in_at >= datetime('now', '-30 days')"
+  ).get(guestId).c;
 
   // Aggregate per-page view counts
   function pageViewCounts(page) {
@@ -193,6 +205,7 @@ router.get('/', requireAdmin, (req, res) => {
     logins_today: loginsToday,
     logins_week: loginsWeek,
     logins_month: loginsMonth,
+    guest_visits: { today: guestVisitsToday, week: guestVisitsWeek, month: guestVisitsMonth },
     landing_views: pageViewCounts('landing'),
     market_brief_views: pageViewCounts('market_brief'),
     video_in_brief_views: pageViewCounts('video_in_brief'),

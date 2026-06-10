@@ -50,12 +50,9 @@ router.get('/', requireAuth, (req, res) => {
     // Parse JSON fields
     const videos = rows.map((row) => ({
       ...row,
-      tickers: (() => {
-        try { return JSON.parse(row.tickers || '[]'); } catch { return []; }
-      })(),
-      trade_signals: (() => {
-        try { return JSON.parse(row.trade_signals || '[]'); } catch { return []; }
-      })(),
+      key_points:   (() => { try { return JSON.parse(row.key_points   || '[]'); } catch { return []; } })(),
+      tickers:      (() => { try { return JSON.parse(row.tickers      || '[]'); } catch { return []; } })(),
+      trade_signals:(() => { try { return JSON.parse(row.trade_signals|| '[]'); } catch { return []; } })(),
     }));
 
     res.json({ videos, total });
@@ -86,9 +83,9 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
     );
 
     db.prepare(`
-      UPDATE videos SET summary = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
+      UPDATE videos SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
       WHERE id = ?
-    `).run(analysis.summary, JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), row.id);
+    `).run(analysis.summary, JSON.stringify(analysis.keyPoints || []), JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), row.id);
     db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'reanalyze_video', row.title);
 
     res.json({

@@ -23,6 +23,7 @@ function GroupCard({ label, color, today, week, month }) {
     violet:  { border: 'border-violet-500/40',  heading: 'text-violet-300',  val: 'text-violet-100'  },
     emerald: { border: 'border-emerald-500/40', heading: 'text-emerald-300', val: 'text-emerald-100' },
     amber:   { border: 'border-amber-500/40',   heading: 'text-amber-300',   val: 'text-amber-100'   },
+    zinc:    { border: 'border-zinc-500/40',    heading: 'text-zinc-400',    val: 'text-zinc-200'    },
   };
   const { border, heading, val } = colors[color] || colors.blue;
   return (
@@ -518,11 +519,12 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                 </div>
 
                 {/* Group cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <GroupCard label="Logins"             color="amber"   today={data.logins_today}               week={data.logins_week}               month={data.logins_month} />
-                  <GroupCard label="Landing Visits"     color="blue"    today={data.landing_views?.today}        week={data.landing_views?.week}        month={data.landing_views?.month} />
-                  <GroupCard label="Market Brief Visits" color="violet" today={data.market_brief_views?.today}   week={data.market_brief_views?.week}   month={data.market_brief_views?.month} />
-                  <GroupCard label="Video Brief Visits" color="emerald" today={data.video_in_brief_views?.today} week={data.video_in_brief_views?.week} month={data.video_in_brief_views?.month} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                  <GroupCard label="Logins"             color="amber"   today={data.logins_today}                  week={data.logins_week}               month={data.logins_month} />
+                  <GroupCard label="Guest Visits"       color="zinc"    today={data.guest_visits?.today}            week={data.guest_visits?.week}         month={data.guest_visits?.month} />
+                  <GroupCard label="Landing Visits"     color="blue"    today={data.landing_views?.today}           week={data.landing_views?.week}        month={data.landing_views?.month} />
+                  <GroupCard label="Market Brief Visits" color="violet" today={data.market_brief_views?.today}      week={data.market_brief_views?.week}   month={data.market_brief_views?.month} />
+                  <GroupCard label="Video Brief Visits" color="emerald" today={data.video_in_brief_views?.today}    week={data.video_in_brief_views?.week} month={data.video_in_brief_views?.month} />
                 </div>
 
                 {/* Activity chart */}
