@@ -17,6 +17,16 @@ function marketBriefLog(phase, error, context = {}) {
   const entry = JSON.stringify({ ts: new Date().toISOString(), ...context, phase, error });
   try { appendFileSync(logPath, entry + '\n'); } catch (_) {}
   console.error(`[MarketBrief] phase=${phase} error=${error}`, context.videoId ? `video=${context.videoId}` : `channel=${context.channelName}`);
+  // Write to appropriate observability table
+  try {
+    if (phase === 'rss') {
+      db.prepare('INSERT INTO channel_rss_errors (channel_id, channel_name, error) VALUES (?, ?, ?)')
+        .run(context.channelId || null, context.channelName || 'Unknown', error);
+    } else if (context.videoId) {
+      db.prepare('INSERT INTO market_brief_errors (channel_id, video_id, phase, error) VALUES (?, ?, ?, ?)')
+        .run(context.channelId || null, context.videoId, phase, error);
+    }
+  } catch (_) {}
 }
 
 // ── Analysis helpers ──────────────────────────────────────────────────────────

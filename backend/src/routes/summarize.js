@@ -25,6 +25,10 @@ function briefLog(jobId, userId, url, phase, error) {
   const entry = JSON.stringify({ ts: new Date().toISOString(), jobId, userId, url, phase, error });
   try { appendFileSync(logPath, entry + '\n'); } catch (_) {}
   console.error(`[VideoBrief] job=${jobId} phase=${phase}: ${error}`);
+  // Write to DB for observability — every analysis failure (not inline-timeout promotions)
+  try {
+    db.prepare('INSERT INTO video_brief_errors (user_id, url, phase, error) VALUES (?, ?, ?, ?)').run(userId, url, phase, error);
+  } catch (_) {}
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -253,8 +257,7 @@ router.post('/', requireAuth, async (req, res) => {
   ]);
 
   if (winner === null) {
-    // Job is still running — persist to DB and tell frontend to poll
-    briefLog(jobId, req.user.id, url.trim(), 'timeout', `Exceeded inline timeout of ${BRIEF_INLINE_TIMEOUT_MS}ms`);
+    // Job is still running — persist to DB and tell frontend to poll (not an error)
     db.prepare('INSERT INTO summary_jobs (id, user_id, url, status) VALUES (?, ?, ?, ?)').run(jobId, req.user.id, url.trim(), 'pending');
     // Ensure any late rejection is caught so it doesn't become an unhandled promise rejection
     jobPromise.catch(err => briefLog(jobId, req.user.id, url.trim(), 'unexpected', err.message));

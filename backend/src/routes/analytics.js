@@ -200,6 +200,91 @@ router.get('/', requireAdmin, (req, res) => {
   });
 });
 
+// GET /api/analytics/errors/video-brief?period=day|week|month&page=1
+router.get('/errors/video-brief', requireAdmin, (req, res) => {
+  const period = ['day', 'week', 'month'].includes(req.query.period) ? req.query.period : 'week';
+  const page   = Math.max(1, parseInt(req.query.page || '1', 10));
+  const PAGE_SIZE = 20;
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const since = period === 'day'   ? "datetime('now', '-1 day')"
+              : period === 'month' ? "datetime('now', '-30 days')"
+              :                      "datetime('now', '-7 days')";
+
+  const successCount = db.prepare(
+    `SELECT COUNT(*) as c FROM action_log WHERE action = 'summarize_video' AND created_at >= ${since}`
+  ).get().c;
+  const errorCount = db.prepare(
+    `SELECT COUNT(*) as c FROM video_brief_errors WHERE created_at >= ${since}`
+  ).get().c;
+
+  const totalPages = Math.max(1, Math.ceil(errorCount / PAGE_SIZE));
+  const errors = db.prepare(`
+    SELECT e.id, COALESCE(u.username, 'deleted') AS username, e.url, e.phase, e.error, e.created_at
+    FROM video_brief_errors e
+    LEFT JOIN users u ON u.id = e.user_id
+    WHERE e.created_at >= ${since}
+    ORDER BY e.created_at DESC
+    LIMIT ? OFFSET ?
+  `).all(PAGE_SIZE, offset);
+
+  const rateLimitByUser = db.prepare(`
+    SELECT COALESCE(u.username, 'deleted') AS username, COALESCE(u.role, '—') AS role,
+           COUNT(*) AS hits, MAX(r.created_at) AS last_hit
+    FROM rate_limit_events r
+    LEFT JOIN users u ON u.id = r.user_id
+    WHERE r.created_at >= ${since}
+    GROUP BY r.user_id
+    ORDER BY hits DESC
+  `).all();
+
+  res.json({ pie: { total: successCount + errorCount, errors: errorCount, period }, errors, errorPage: page, errorTotalPages: totalPages, rateLimitByUser });
+});
+
+// GET /api/analytics/errors/market-brief?period=day|week|month&page=1
+router.get('/errors/market-brief', requireAdmin, (req, res) => {
+  const period = ['day', 'week', 'month'].includes(req.query.period) ? req.query.period : 'week';
+  const page   = Math.max(1, parseInt(req.query.page || '1', 10));
+  const PAGE_SIZE = 20;
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const since = period === 'day'   ? "datetime('now', '-1 day')"
+              : period === 'month' ? "datetime('now', '-30 days')"
+              :                      "datetime('now', '-7 days')";
+
+  const doneCount   = db.prepare(`SELECT COUNT(*) as c FROM videos WHERE analysis_status = 'done'  AND created_at >= ${since}`).get().c;
+  const failedCount = db.prepare(`SELECT COUNT(*) as c FROM videos WHERE analysis_status = 'failed' AND created_at >= ${since}`).get().c;
+
+  const errorCount = db.prepare(`SELECT COUNT(*) as c FROM market_brief_errors WHERE created_at >= ${since}`).get().c;
+  const totalPages = Math.max(1, Math.ceil(errorCount / PAGE_SIZE));
+  const errors = db.prepare(`
+    SELECT e.id,
+           COALESCE(c.name, 'deleted') AS channel_name,
+           COALESCE(v.title, e.video_id) AS video_title,
+           'https://www.youtube.com/watch?v=' || e.video_id AS video_url,
+           e.phase, e.error, e.created_at
+    FROM market_brief_errors e
+    LEFT JOIN channels c ON c.id = e.channel_id
+    LEFT JOIN videos v ON v.youtube_id = e.video_id
+    WHERE e.created_at >= ${since}
+    ORDER BY e.created_at DESC
+    LIMIT ? OFFSET ?
+  `).all(PAGE_SIZE, offset);
+
+  const channelErrors = db.prepare(`
+    SELECT channel_name, COUNT(*) AS failures, MAX(created_at) AS last_failure,
+           (SELECT error FROM channel_rss_errors c2
+            WHERE c2.channel_name = cre.channel_name AND c2.created_at >= ${since}
+            ORDER BY c2.created_at DESC LIMIT 1) AS last_error
+    FROM channel_rss_errors cre
+    WHERE created_at >= ${since}
+    GROUP BY channel_name
+    ORDER BY failures DESC
+  `).all();
+
+  res.json({ pie: { total: doneCount + failedCount, errors: failedCount, period }, errors, errorPage: page, errorTotalPages: totalPages, channelErrors });
+});
+
 // GET /api/analytics/action-log — recent 50 actions across all users
 router.get('/action-log', requireAdmin, (req, res) => {
   try {

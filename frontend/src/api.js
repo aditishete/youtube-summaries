@@ -226,3 +226,17 @@ export const getActionLog = async () => {
   if (!res.ok) throw new Error(data.error || 'Failed to fetch action log');
   return data;
 };
+
+export const getVideoBriefErrors = async (period = 'week', page = 1) => {
+  const res = await apiFetch(`${BASE}/analytics/errors/video-brief?period=${period}&page=${page}`);
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch video brief errors');
+  return data;
+};
+
+export const getMarketBriefErrors = async (period = 'week', page = 1) => {
+  const res = await apiFetch(`${BASE}/analytics/errors/market-brief?period=${period}&page=${page}`);
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch market brief errors');
+  return data;
+};

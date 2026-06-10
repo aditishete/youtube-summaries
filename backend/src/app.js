@@ -1,12 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import jwt from 'jsonwebtoken';
 import { rateLimit } from 'express-rate-limit';
 import channelRoutes from './routes/channels.js';
 import videoRoutes from './routes/videos.js';
 import authRoutes from './routes/auth.js';
 import summarizeRoutes from './routes/summarize.js';
 import analyticsRoutes from './routes/analytics.js';
+import db from './db.js';
 
 const isTest = process.env.NODE_ENV === 'test';
 
@@ -32,7 +34,25 @@ export function createApp({ testRateLimits = {} } = {}) {
   const registerLimiter = makeLimit('register', 60 * 60 * 1000, 5, 'Too many accounts created from this IP, please try again later.');
 
   // 10 summarize calls / hour per IP — protect Claude API costs
-  const summarizeLimiter = makeLimit('summarize', 60 * 60 * 1000, 10, 'Summarize limit reached. You can generate up to 10 briefs per hour.');
+  // Custom handler logs the event per user for observability
+  const summarizeLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: isTest ? (testRateLimits['summarize'] ?? 10000) : 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler(req, res) {
+      try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (token) {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'change-me-in-production');
+          db.prepare('INSERT INTO rate_limit_events (user_id, endpoint) VALUES (?, ?)').run(decoded.id, '/api/summarize');
+        } else {
+          db.prepare('INSERT INTO rate_limit_events (user_id, endpoint) VALUES (?, ?)').run(null, '/api/summarize');
+        }
+      } catch (_) {}
+      res.status(429).json({ error: 'Summarize limit reached. You can generate up to 10 briefs per hour.' });
+    },
+  });
 
   app.use(helmet());
   app.use(cors());

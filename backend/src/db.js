@@ -196,6 +196,45 @@ try { db.exec("ALTER TABLE videos ADD COLUMN analysis_status TEXT NOT NULL DEFAU
 // Backfill: videos that already have analyzed_at set are done
 try { db.exec("UPDATE videos SET analysis_status = 'done' WHERE analyzed_at IS NOT NULL AND analysis_status = 'pending'"); } catch (_) {}
 
+// Observability error tables
+db.exec(`
+  CREATE TABLE IF NOT EXISTS video_brief_errors (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    url        TEXT NOT NULL,
+    phase      TEXT NOT NULL,
+    error      TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS market_brief_errors (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel_id INTEGER REFERENCES channels(id) ON DELETE SET NULL,
+    video_id   TEXT NOT NULL,
+    phase      TEXT NOT NULL,
+    error      TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS channel_rss_errors (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel_id   INTEGER REFERENCES channels(id) ON DELETE SET NULL,
+    channel_name TEXT NOT NULL,
+    error        TEXT NOT NULL,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS rate_limit_events (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    endpoint   TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Async summary jobs — only written when a job exceeds the inline timeout
 db.exec(`
   CREATE TABLE IF NOT EXISTS summary_jobs (
