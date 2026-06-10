@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import db from '../db.js';
-import { resolveChannelId, fetchChannelVideos } from '../rss.js';
+import { resolveChannelId, fetchChannelVideos } from '../youtube.js';
 import { analyzeVideo } from '../claude.js';
 import { fetchTranscript } from '../transcript.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';

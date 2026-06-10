@@ -3,7 +3,7 @@ import { appendFileSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import db from './db.js';
-import { fetchChannelVideos } from './rss.js';
+import { fetchChannelVideos } from './youtube.js';
 import { analyzeVideo } from './claude.js';
 import { fetchTranscript } from './transcript.js';
 
@@ -19,7 +19,7 @@ function marketBriefLog(phase, error, context = {}) {
   console.error(`[MarketBrief] phase=${phase} error=${error}`, context.videoId ? `video=${context.videoId}` : `channel=${context.channelName}`);
   // Write to appropriate observability table
   try {
-    if (phase === 'rss') {
+    if (phase === 'youtube_fetch') {
       db.prepare('INSERT INTO channel_rss_errors (channel_id, channel_name, error) VALUES (?, ?, ?)')
         .run(context.channelId || null, context.channelName || 'Unknown', error);
     } else if (context.videoId) {
@@ -121,7 +121,7 @@ async function pollChannels(limit = 10) {
       console.log(`[Scheduler] Channel "${channel.name}": ${newCount} new video(s) processed.`);
 
     } catch (err) {
-      marketBriefLog('rss', err.message, channelContext);
+      marketBriefLog('youtube_fetch', err.message, channelContext);
     }
   }
 

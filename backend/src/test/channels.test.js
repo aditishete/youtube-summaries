@@ -29,14 +29,14 @@ const mockVideos = [
 ];
 
 // Prevent real network calls
-vi.mock('../rss.js', () => ({
+vi.mock('../youtube.js', () => ({
   resolveChannelId: vi.fn().mockResolvedValue('UCtest1234567890123456'),
   fetchChannelVideos: vi.fn().mockResolvedValue({ channelName: 'Mock Channel', items: [] }),
 }));
 vi.mock('../claude.js', () => ({ analyzeVideo: vi.fn() }));
 vi.mock('../transcript.js', () => ({ fetchTranscript: vi.fn().mockResolvedValue('Mock transcript text.') }));
 
-import { fetchChannelVideos } from '../rss.js';
+import { fetchChannelVideos } from '../youtube.js';
 import { analyzeVideo } from '../claude.js';
 
 beforeEach(async () => {
