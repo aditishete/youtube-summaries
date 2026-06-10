@@ -93,6 +93,7 @@ router.post('/', requireAdmin, async (req, res) => {
     let failed = 0;
 
     for (const item of items) {
+      let videoRowId;
       try {
         const insertVideo = db.prepare(`
           INSERT OR IGNORE INTO videos (channel_id, youtube_id, title, description, url, thumbnail_url, published_at)
@@ -110,7 +111,7 @@ router.post('/', requireAdmin, async (req, res) => {
 
         if (videoResult.changes === 0) continue; // Already existed
 
-        const videoRowId = videoResult.lastInsertRowid;
+        videoRowId = videoResult.lastInsertRowid;
 
         // Analyze with Claude (use transcript for richer content)
         const transcript = await fetchTranscript(item.videoId);
@@ -126,10 +127,11 @@ router.post('/', requireAdmin, async (req, res) => {
 
         db.prepare(`
           UPDATE videos
-          SET summary = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP
+          SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
           WHERE id = ?
         `).run(
           analysis.summary,
+          JSON.stringify(analysis.keyPoints || []),
           JSON.stringify(analysis.tickers),
           JSON.stringify(analysis.trade_signals),
           videoRowId
@@ -138,12 +140,14 @@ router.post('/', requireAdmin, async (req, res) => {
         const videoRow = db.prepare('SELECT * FROM videos WHERE id = ?').get(videoRowId);
         insertedVideos.push({
           ...videoRow,
-          tickers: JSON.parse(videoRow.tickers || '[]'),
-          trade_signals: JSON.parse(videoRow.trade_signals || '[]'),
+          key_points:    JSON.parse(videoRow.key_points   || '[]'),
+          tickers:       JSON.parse(videoRow.tickers      || '[]'),
+          trade_signals: JSON.parse(videoRow.trade_signals|| '[]'),
         });
         analyzed++;
       } catch (videoErr) {
         console.error(`Error processing video ${item.videoId}:`, videoErr.message);
+        db.prepare("UPDATE videos SET analysis_status = 'failed' WHERE id = ? AND analysis_status = 'pending'").run(videoRowId);
         failed++;
       }
     }
@@ -203,10 +207,11 @@ router.patch('/:id', requireAdmin, async (req, res) => {
             channelName
           );
           db.prepare(`
-            UPDATE videos SET summary = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP WHERE id = ?
-          `).run(analysis.summary, JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), videoResult.lastInsertRowid);
+            UPDATE videos SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done' WHERE id = ?
+          `).run(analysis.summary, JSON.stringify(analysis.keyPoints || []), JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), videoResult.lastInsertRowid);
         } catch (analysisErr) {
           console.error(`Error analyzing video ${item.videoId}:`, analysisErr.message);
+          db.prepare("UPDATE videos SET analysis_status = 'failed' WHERE id = ? AND analysis_status = 'pending'").run(videoResult.lastInsertRowid);
         }
       }
 
@@ -287,16 +292,18 @@ router.post('/:id/refresh', requireAdmin, async (req, res) => {
 
         db.prepare(`
           UPDATE videos
-          SET summary = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP
+          SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
           WHERE id = ?
         `).run(
           analysis.summary,
+          JSON.stringify(analysis.keyPoints || []),
           JSON.stringify(analysis.tickers),
           JSON.stringify(analysis.trade_signals),
           videoRowId
         );
       } catch (analysisErr) {
         console.error(`Error analyzing video ${item.videoId}:`, analysisErr.message);
+        db.prepare("UPDATE videos SET analysis_status = 'failed' WHERE id = ? AND analysis_status = 'pending'").run(videoRowId);
       }
     }
 
