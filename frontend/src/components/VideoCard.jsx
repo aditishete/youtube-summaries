@@ -6,10 +6,12 @@ import { SpeakButton } from './SpeakButton.jsx';
 function formatDate(dateStr) {
   if (!dateStr) return '';
   try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
+    return new Date(dateStr).toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     });
   } catch {
     return dateStr;

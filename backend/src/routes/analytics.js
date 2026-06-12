@@ -179,9 +179,10 @@ router.get('/', requireAdmin, (req, res) => {
       (SELECT count(*) FROM user_summaries WHERE user_id = u.id) AS total_briefs,
       (SELECT count(*) FROM user_summaries WHERE user_id = u.id AND date(created_at${toLocal}) = '${today}') AS briefs_today,
       (SELECT count(*) FROM user_summaries WHERE user_id = u.id AND created_at >= datetime('now', '-7 days')) AS briefs_week,
-      (SELECT count(*) FROM user_summaries WHERE user_id = u.id AND created_at >= datetime('now', '-30 days')) AS briefs_month
+      (SELECT count(*) FROM user_summaries WHERE user_id = u.id AND created_at >= datetime('now', '-30 days')) AS briefs_month,
+      (SELECT MAX(logged_in_at) FROM user_logins WHERE user_id = u.id) AS last_login_at
     FROM users u
-    ORDER BY total_logins DESC
+    ORDER BY last_login_at DESC NULLS LAST
     LIMIT 25
   `).all().map((u) => {
     const daysSinceJoined = Math.max(1, (Date.now() - new Date(u.created_at).getTime()) / 86400000);
