@@ -128,6 +128,22 @@ async function pollChannels(limit = 10) {
   console.log('[Scheduler] Poll cycle complete.');
 }
 
+// ── Orphan cleanup ────────────────────────────────────────────────────────────
+function pruneOrphanedAnalyses() {
+  try {
+    const { changes } = db.prepare(`
+      DELETE FROM video_analyses
+      WHERE id NOT IN (
+        SELECT video_analysis_id FROM user_summaries WHERE video_analysis_id IS NOT NULL
+      )
+      AND created_at < datetime('now', '-10 days')
+    `).run();
+    if (changes > 0) console.log(`[Scheduler] Pruned ${changes} orphaned video_analyses row(s).`);
+  } catch (err) {
+    console.error('[Scheduler] Orphan prune error:', err.message);
+  }
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 export function startScheduler() {
   const interval = parseInt(process.env.POLL_INTERVAL_MINUTES || '10', 10);
@@ -138,15 +154,18 @@ export function startScheduler() {
   (async () => {
     try {
       await catchUpPendingToday();
-      await pollChannels(15);
+      await pollChannels(50);
     } catch (err) {
       console.error('[Scheduler] Startup error:', err.message);
     }
   })();
 
   cron.schedule(cronExpression, () => {
-    pollChannels().catch((err) => {
+    pollChannels(50).catch((err) => {
       console.error('[Scheduler] Unexpected poll error:', err.message);
     });
   });
+
+  // Run orphan cleanup once a day at 03:00
+  cron.schedule('0 3 * * *', pruneOrphanedAnalyses);
 }

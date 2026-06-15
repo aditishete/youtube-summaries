@@ -19,6 +19,7 @@ export async function getToken(username, password) {
 
 export function resetDB() {
   db.prepare('DELETE FROM user_summaries').run();
+  db.prepare('DELETE FROM video_analyses').run();
   db.prepare('DELETE FROM user_visits').run();
   db.prepare('DELETE FROM user_video_requests').run();
   db.prepare('DELETE FROM user_logins').run();

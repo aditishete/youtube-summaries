@@ -156,6 +156,57 @@ try { db.exec('ALTER TABLE user_summaries ADD COLUMN trade_signals TEXT DEFAULT 
 try { db.exec('ALTER TABLE user_summaries ADD COLUMN recommendations TEXT DEFAULT \'[]\''); } catch (_) {}
 try { db.exec('ALTER TABLE user_summaries ADD COLUMN published_at TEXT'); } catch (_) {}
 
+// Shared video analyses — one row per youtube_id, referenced by user_summaries.
+// Prevents re-running Claude when two users submit the same URL, and enables sharing.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS video_analyses (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    youtube_id    TEXT UNIQUE NOT NULL,
+    title         TEXT NOT NULL DEFAULT '',
+    thumbnail     TEXT,
+    url           TEXT NOT NULL DEFAULT '',
+    published_at  TEXT,
+    summary       TEXT NOT NULL DEFAULT '',
+    key_points    TEXT DEFAULT '[]',
+    tickers       TEXT DEFAULT '[]',
+    trade_signals TEXT DEFAULT '[]',
+    recommendations TEXT DEFAULT '[]',
+    analyzed_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Add reference columns to user_summaries
+try { db.exec('ALTER TABLE user_summaries ADD COLUMN video_analysis_id INTEGER REFERENCES video_analyses(id)'); } catch (_) {}
+try { db.exec('ALTER TABLE user_summaries ADD COLUMN share_token TEXT'); } catch (_) {}
+
+// Migrate existing user_summaries rows into video_analyses (dedup by youtube_id)
+try {
+  db.exec(`
+    INSERT OR IGNORE INTO video_analyses
+      (youtube_id, title, thumbnail, url, published_at, summary, key_points, tickers, trade_signals, recommendations, analyzed_at, created_at)
+    SELECT
+      youtube_id, COALESCE(title, ''), thumbnail, COALESCE(url, ''), published_at,
+      COALESCE(summary, ''), COALESCE(key_points, '[]'), COALESCE(tickers, '[]'),
+      COALESCE(trade_signals, '[]'), COALESCE(recommendations, '[]'), created_at, created_at
+    FROM user_summaries
+    WHERE youtube_id IS NOT NULL AND youtube_id != ''
+      AND summary IS NOT NULL AND summary != ''
+  `);
+} catch (_) {}
+
+// Back-fill video_analysis_id on existing user_summaries rows
+try {
+  db.exec(`
+    UPDATE user_summaries
+    SET video_analysis_id = (SELECT id FROM video_analyses WHERE video_analyses.youtube_id = user_summaries.youtube_id)
+    WHERE video_analysis_id IS NULL AND youtube_id IS NOT NULL AND youtube_id != ''
+  `);
+} catch (_) {}
+
+// Generate share tokens for all user_summaries rows that don't have one
+try { db.exec(`UPDATE user_summaries SET share_token = lower(hex(randomblob(16))) WHERE share_token IS NULL`); } catch (_) {}
+
 // Create user_logins table
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_logins (

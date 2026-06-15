@@ -238,7 +238,7 @@ function Recommendations({ tickers, tradeSignals, recommendations, large }) {
   );
 }
 
-export default function SummarizePage({ onBack, onLogout, isGuest }) {
+export default function SummarizePage({ onBack, onLogout, isGuest, claimedShareToken }) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
@@ -247,7 +247,26 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const [sortBy, setSortBy] = useState('added'); // 'added' | 'posted'
   const { speakingId, speak } = useSpeech();
+
+  const sortedHistory = [...history].sort((a, b) => {
+    if (sortBy === 'posted') {
+      const aTime = a.published_at ? new Date(a.published_at).getTime() : 0;
+      const bTime = b.published_at ? new Date(b.published_at).getTime() : 0;
+      return bTime - aTime;
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  function handleShare(item) {
+    const url = `${window.location.origin}?share=${item.share_token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(item.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  }
 
   useEffect(() => {
     getSummaryHistory()
@@ -428,6 +447,14 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
             )}
           </div>
 
+          {/* Shared video banner */}
+          {claimedShareToken && (
+            <div className="mb-6 bg-violet-900/30 border border-violet-600/60 rounded-xl px-4 py-3 flex items-center gap-3">
+              <span className="text-violet-400 text-lg flex-shrink-0">▶</span>
+              <p className="text-violet-200 text-sm">A shared video analysis was added to your history and is highlighted below.</p>
+            </div>
+          )}
+
           {/* History table */}
           {!historyLoading && history.length > 0 && (
             <div>
@@ -438,15 +465,22 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
                     {history.length}
                   </span>
                 </h2>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <button
-                    onClick={() => downloadCsv(history)}
+                    onClick={() => setSortBy(s => s === 'added' ? 'posted' : 'added')}
+                    className="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-300 hover:text-zinc-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                    title={sortBy === 'added' ? 'Switch to sort by posted time' : 'Switch to sort by time added'}
+                  >
+                    ⇅ {sortBy === 'added' ? 'Time Added' : 'Posted Time'}
+                  </button>
+                  <button
+                    onClick={() => downloadCsv(sortedHistory)}
                     className="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-300 hover:text-zinc-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
                   >
                     ↓ CSV
                   </button>
                   <button
-                    onClick={() => downloadPdf(history)}
+                    onClick={() => downloadPdf(sortedHistory)}
                     className="flex items-center gap-1.5 bg-red-900/60 hover:bg-red-900 border border-red-700 text-red-300 hover:text-red-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
                   >
                     ↓ PDF
@@ -465,21 +499,21 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
                 <table className="w-full text-lg table-fixed">
                   <colgroup>
                     <col style={{ width: '17%' }} />
-                    <col style={{ width: '44%' }} />
-                    <col style={{ width: '31%' }} />
-                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '42%' }} />
+                    <col style={{ width: '29%' }} />
+                    <col style={{ width: '12%' }} />
                   </colgroup>
                   <thead>
                     <tr className="bg-zinc-800/80">
                       <th className="px-4 py-2.5 text-left text-zinc-300 font-semibold text-sm uppercase tracking-wide">Video</th>
                       <th className="px-4 py-2.5 text-left text-zinc-300 font-semibold text-sm uppercase tracking-wide">Summary</th>
                       <th className="px-4 py-2.5 text-left text-zinc-300 font-semibold text-sm uppercase tracking-wide">Recommendations</th>
-                      <th className="px-4 py-2.5 text-left text-zinc-300 font-semibold text-sm uppercase tracking-wide">Remove</th>
+                      <th className="px-4 py-2.5 text-left text-zinc-300 font-semibold text-sm uppercase tracking-wide">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
-                    {history.map((item, idx) => (
-                      <tr key={item.id ?? idx} className="align-top hover:bg-zinc-800/30 transition-colors">
+                    {sortedHistory.map((item, idx) => (
+                      <tr key={item.id ?? idx} className={`align-top hover:bg-zinc-800/30 transition-colors ${item.share_token === claimedShareToken ? 'ring-2 ring-inset ring-violet-500 bg-violet-950/20' : ''}`}>
                         <td className="px-4 py-3">
                           {item.thumbnail ? (
                             <img src={item.thumbnail} alt={item.title} className="w-full aspect-video object-cover rounded-lg" />
@@ -516,20 +550,30 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
                           <Recommendations tickers={item.tickers} tradeSignals={item.trade_signals} recommendations={item.recommendations} large />
                         </td>
                         <td className="px-4 py-3">
-                          {confirmDeleteId === (item.id ?? idx) ? (
-                            <div className="flex flex-col gap-1.5">
-                              <span className="text-red-400 text-xs font-semibold">Remove?</span>
-                              <button onClick={() => handleDelete(item.id ?? idx)} className="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg transition-colors">Yes</button>
-                              <button onClick={() => setConfirmDeleteId(null)} className="bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs px-2 py-1 rounded-lg transition-colors">No</button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setConfirmDeleteId(item.id ?? idx)}
-                              className="bg-red-900/50 hover:bg-red-700 border border-red-700 hover:border-red-500 text-red-300 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-                            >
-                              Remove
-                            </button>
-                          )}
+                          <div className="flex flex-col gap-1.5">
+                            {item.share_token && (
+                              <button
+                                onClick={() => handleShare(item)}
+                                className="bg-violet-900/50 hover:bg-violet-700 border border-violet-700 hover:border-violet-500 text-violet-300 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                              >
+                                {copiedId === item.id ? 'Copied!' : 'Share'}
+                              </button>
+                            )}
+                            {confirmDeleteId === (item.id ?? idx) ? (
+                              <div className="flex flex-col gap-1.5">
+                                <span className="text-red-400 text-xs font-semibold">Remove?</span>
+                                <button onClick={() => handleDelete(item.id ?? idx)} className="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg transition-colors">Yes</button>
+                                <button onClick={() => setConfirmDeleteId(null)} className="bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs px-2 py-1 rounded-lg transition-colors">No</button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDeleteId(item.id ?? idx)}
+                                className="bg-red-900/50 hover:bg-red-700 border border-red-700 hover:border-red-500 text-red-300 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -539,8 +583,8 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
 
               {/* Mobile: card layout */}
               <div className="md:hidden space-y-4">
-                {history.map((item, idx) => (
-                  <div key={item.id ?? idx} className="bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden">
+                {sortedHistory.map((item, idx) => (
+                  <div key={item.id ?? idx} className={`bg-zinc-900 rounded-xl overflow-hidden ${item.share_token === claimedShareToken ? 'border-2 border-violet-500' : 'border border-zinc-700'}`}>
                     <div className="flex gap-3 p-4">
                       <div className="flex-shrink-0 w-32">
                         {item.thumbnail ? (
@@ -555,7 +599,15 @@ export default function SummarizePage({ onBack, onLogout, isGuest }) {
                         {item.published_at && <p className="text-zinc-500 text-sm mt-1">Posted {formatDate(item.published_at)}</p>}
                         {item.created_at && <p className="text-zinc-600 text-sm mt-0.5">Briefed {formatDate(item.created_at)}</p>}
                       </div>
-                      <div className="flex-shrink-0 flex items-start pt-0.5">
+                      <div className="flex-shrink-0 flex flex-col gap-1.5 items-end pt-0.5">
+                        {item.share_token && (
+                          <button
+                            onClick={() => handleShare(item)}
+                            className="bg-violet-900/50 hover:bg-violet-700 border border-violet-700 text-violet-300 hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                          >
+                            {copiedId === item.id ? 'Copied!' : 'Share'}
+                          </button>
+                        )}
                         {confirmDeleteId === (item.id ?? idx) ? (
                           <div className="flex flex-col gap-1.5">
                             <button onClick={() => handleDelete(item.id ?? idx)} className="bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-3 py-1.5 rounded-lg transition-colors">Yes</button>

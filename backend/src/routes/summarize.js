@@ -25,7 +25,6 @@ function briefLog(jobId, userId, url, phase, error) {
   const entry = JSON.stringify({ ts: new Date().toISOString(), jobId, userId, url, phase, error });
   try { appendFileSync(logPath, entry + '\n'); } catch (_) {}
   console.error(`[VideoBrief] job=${jobId} phase=${phase}: ${error}`);
-  // Write to DB for observability — every analysis failure (not inline-timeout promotions)
   try {
     db.prepare('INSERT INTO video_brief_errors (user_id, url, phase, error) VALUES (?, ?, ?, ?)').run(userId, url, phase, error);
   } catch (_) {}
@@ -46,16 +45,20 @@ function extractVideoId(url) {
   return null;
 }
 
+function parseJSON(str, fallback) {
+  try { return JSON.parse(str || JSON.stringify(fallback)); } catch { return fallback; }
+}
+
 async function fetchVideoMeta(videoId) {
   try {
     const res = await fetch(
       `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
     );
-    if (!res.ok) return { title: '', thumbnail: '', published_at: null };
+    if (!res.ok) return { title: '', thumbnail: '' };
     const data = await res.json();
-    return { title: data.title || '', thumbnail: data.thumbnail_url || '', published_at: null };
+    return { title: data.title || '', thumbnail: data.thumbnail_url || '' };
   } catch {
-    return { title: '', thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`, published_at: null };
+    return { title: '', thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` };
   }
 }
 
@@ -72,48 +75,88 @@ async function fetchVideoPublishedAt(videoId) {
   }
 }
 
+function buildResult(summaryRow, analysis) {
+  return {
+    id:              summaryRow.id,
+    videoId:         analysis.youtube_id,
+    title:           analysis.title,
+    thumbnail:       analysis.thumbnail || `https://i.ytimg.com/vi/${analysis.youtube_id}/hqdefault.jpg`,
+    url:             analysis.url,
+    published_at:    analysis.published_at || null,
+    summary:         analysis.summary,
+    keyPoints:       parseJSON(analysis.key_points, []),
+    tickers:         parseJSON(analysis.tickers, []),
+    trade_signals:   parseJSON(analysis.trade_signals, []),
+    recommendations: parseJSON(analysis.recommendations, []),
+    share_token:     summaryRow.share_token,
+    created_at:      summaryRow.created_at,
+  };
+}
+
 // ── Core job runner ───────────────────────────────────────────────────────────
 // Always resolves — never rejects. Returns { ok, result } or { ok, error }.
 async function runSummarizeJob(jobId, userId, url, videoId) {
   try {
-    // Phase: transcript
-    let transcript;
-    try {
-      transcript = await fetchTranscript(videoId);
-    } catch (err) {
-      briefLog(jobId, userId, url, 'transcript', err.message);
-      await markJobFailed(jobId, 'Failed to fetch transcript.');
-      return { ok: false, error: 'Failed to fetch transcript.' };
-    }
-    if (!transcript) {
-      briefLog(jobId, userId, url, 'transcript', 'No transcript available');
-      await markJobFailed(jobId, 'No transcript available for this video. It may be private, age-restricted, or have captions disabled.');
-      return { ok: false, error: 'No transcript available for this video. It may be private, age-restricted, or have captions disabled.' };
+    // Step 1: check shared analysis cache (video_analyses)
+    let analysis = db.prepare('SELECT * FROM video_analyses WHERE youtube_id = ?').get(videoId);
+
+    // Step 2: check channel videos table — reuse if already analyzed by the scheduler
+    if (!analysis) {
+      const cv = db.prepare('SELECT * FROM videos WHERE youtube_id = ?').get(videoId);
+      if (cv && cv.analysis_status === 'done' && cv.summary) {
+        db.prepare(`
+          INSERT OR IGNORE INTO video_analyses
+            (youtube_id, title, thumbnail, url, published_at, summary, key_points, tickers, trade_signals, recommendations, analyzed_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)
+        `).run(
+          cv.youtube_id, cv.title, cv.thumbnail_url || '', cv.url, cv.published_at,
+          cv.summary, cv.key_points || '[]', cv.tickers || '[]', cv.trade_signals || '[]',
+          cv.analyzed_at
+        );
+        analysis = db.prepare('SELECT * FROM video_analyses WHERE youtube_id = ?').get(videoId);
+      }
     }
 
-    // Phase: metadata
-    const [{ title, thumbnail }, published_at] = await Promise.all([
-      fetchVideoMeta(videoId),
-      fetchVideoPublishedAt(videoId),
-    ]);
+    // Step 3: run Claude if still no cached analysis
+    if (!analysis) {
+      // Phase: transcript
+      let transcript;
+      try {
+        transcript = await fetchTranscript(videoId);
+      } catch (err) {
+        briefLog(jobId, userId, url, 'transcript', err.message);
+        markJobFailed(jobId, 'Failed to fetch transcript.');
+        return { ok: false, error: 'Failed to fetch transcript.' };
+      }
+      if (!transcript) {
+        briefLog(jobId, userId, url, 'transcript', 'No transcript available');
+        markJobFailed(jobId, 'No transcript available for this video. It may be private, age-restricted, or have captions disabled.');
+        return { ok: false, error: 'No transcript available for this video. It may be private, age-restricted, or have captions disabled.' };
+      }
 
-    // Phase: AI summarization
-    let aiResponse;
-    try {
-      aiResponse = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
-        system: [
-          {
-            type: 'text',
-            text: 'You summarize YouTube video transcripts clearly and concisely in English.',
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        messages: [
-          {
-            role: 'user',
-            content: `Summarize this YouTube video transcript.
+      // Phase: metadata
+      const [{ title, thumbnail }, published_at] = await Promise.all([
+        fetchVideoMeta(videoId),
+        fetchVideoPublishedAt(videoId),
+      ]);
+
+      // Phase: AI summarization
+      let aiResponse;
+      try {
+        aiResponse = await client.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2048,
+          system: [
+            {
+              type: 'text',
+              text: 'You summarize YouTube video transcripts clearly and concisely in English.',
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages: [
+            {
+              role: 'user',
+              content: `Summarize this YouTube video transcript.
 
 Title: ${title || 'Unknown'}
 Transcript:
@@ -143,53 +186,86 @@ Rules:
 - Only emit a signal when the speaker makes a real directional commitment, not just a mention
 - recommendations: 3-5 specific, actionable things the viewer should do based on this video — only for self-help, health, diet, fitness, productivity, or lifestyle videos; empty array for investment/finance videos or videos with no actionable viewer advice
 - Write in English regardless of the transcript language`,
-          },
-        ],
-      });
-    } catch (err) {
-      briefLog(jobId, userId, url, 'ai', err.message);
-      await markJobFailed(jobId, 'AI summarization failed.');
-      return { ok: false, error: 'AI summarization failed.' };
+            },
+          ],
+        });
+      } catch (err) {
+        briefLog(jobId, userId, url, 'ai', err.message);
+        markJobFailed(jobId, 'AI summarization failed.');
+        return { ok: false, error: 'AI summarization failed.' };
+      }
+
+      // Phase: parse AI response
+      const text = aiResponse.content?.[0]?.text || '';
+      const start = text.indexOf('{');
+      const end   = text.lastIndexOf('}');
+      const cleaned = start !== -1 && end !== -1 ? text.slice(start, end + 1) : text.trim();
+
+      let parsed;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch {
+        briefLog(jobId, userId, url, 'parse', `Bad JSON from AI: ${text.slice(0, 200)}`);
+        markJobFailed(jobId, 'Failed to parse AI response.');
+        return { ok: false, error: 'Failed to parse AI response.' };
+      }
+
+      const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      const ins = db.prepare(`
+        INSERT INTO video_analyses
+          (youtube_id, title, thumbnail, url, published_at, summary, key_points, tickers, trade_signals, recommendations)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        videoId,
+        title,
+        thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        videoUrl,
+        published_at || null,
+        parsed.summary      || '',
+        JSON.stringify(Array.isArray(parsed.keyPoints)       ? parsed.keyPoints       : []),
+        JSON.stringify(Array.isArray(parsed.tickers)         ? parsed.tickers         : []),
+        JSON.stringify(Array.isArray(parsed.trade_signals)   ? parsed.trade_signals   : []),
+        JSON.stringify(Array.isArray(parsed.recommendations) ? parsed.recommendations : []),
+      );
+      analysis = db.prepare('SELECT * FROM video_analyses WHERE id = ?').get(ins.lastInsertRowid);
     }
 
-    // Phase: parse AI response
-    const text = aiResponse.content?.[0]?.text || '';
-    const start = text.indexOf('{');
-    const end   = text.lastIndexOf('}');
-    const cleaned = start !== -1 && end !== -1 ? text.slice(start, end + 1) : text.trim();
+    // Step 4: check if user already has this video — return existing entry without duplicating
+    const existingEntry = db.prepare(
+      'SELECT * FROM user_summaries WHERE user_id = ? AND youtube_id = ?'
+    ).get(userId, videoId);
 
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      briefLog(jobId, userId, url, 'parse', `Bad JSON from AI: ${text.slice(0, 200)}`);
-      await markJobFailed(jobId, 'Failed to parse AI response.');
-      return { ok: false, error: 'Failed to parse AI response.' };
+    if (existingEntry) {
+      // Ensure video_analysis_id is linked (handles pre-migration rows)
+      if (!existingEntry.video_analysis_id) {
+        db.prepare('UPDATE user_summaries SET video_analysis_id = ? WHERE id = ?').run(analysis.id, existingEntry.id);
+      }
+      return { ok: true, result: buildResult(existingEntry, analysis) };
     }
 
-    const result = {
-      videoId,
-      title,
-      thumbnail: thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-      url: `https://www.youtube.com/watch?v=${videoId}`,
-      published_at: published_at || null,
-      summary:         parsed.summary      || '',
-      keyPoints:       Array.isArray(parsed.keyPoints)     ? parsed.keyPoints     : [],
-      tickers:         Array.isArray(parsed.tickers)       ? parsed.tickers       : [],
-      trade_signals:   Array.isArray(parsed.trade_signals) ? parsed.trade_signals : [],
-      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-    };
-
-    // Persist to user_summaries
-    const { lastInsertRowid } = db.prepare(`
-      INSERT INTO user_summaries (user_id, youtube_id, title, thumbnail, url, published_at, summary, key_points, tickers, trade_signals, recommendations)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    // Step 5: create the user's reference row
+    const shareToken = randomUUID().replace(/-/g, '');
+    const ins = db.prepare(`
+      INSERT INTO user_summaries
+        (user_id, youtube_id, title, thumbnail, url, summary, key_points, tickers, trade_signals, recommendations, published_at, video_analysis_id, share_token)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      userId, result.videoId, result.title, result.thumbnail, result.url, result.published_at,
-      result.summary, JSON.stringify(result.keyPoints), JSON.stringify(result.tickers),
-      JSON.stringify(result.trade_signals), JSON.stringify(result.recommendations)
+      userId,
+      analysis.youtube_id,
+      analysis.title,
+      analysis.thumbnail,
+      analysis.url,
+      analysis.summary,
+      analysis.key_points,
+      analysis.tickers,
+      analysis.trade_signals,
+      analysis.recommendations,
+      analysis.published_at,
+      analysis.id,
+      shareToken,
     );
 
+    // Prune to 20 per user
     db.prepare(`
       DELETE FROM user_summaries
       WHERE user_id = ? AND id NOT IN (
@@ -198,23 +274,24 @@ Rules:
     `).run(userId, userId);
 
     db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)')
-      .run(userId, 'summarize_video', result.title || result.url);
+      .run(userId, 'summarize_video', analysis.title || url);
 
-    const fullResult = { ...result, id: lastInsertRowid };
+    const summaryRow = db.prepare('SELECT id, share_token, created_at FROM user_summaries WHERE id = ?').get(ins.lastInsertRowid);
+    const result = buildResult(summaryRow, analysis);
 
-    // Update DB job record if one was written (async path)
-    const existing = db.prepare('SELECT id FROM summary_jobs WHERE id = ?').get(jobId);
-    if (existing) {
+    // Update async job record if one was written
+    const existingJob = db.prepare('SELECT id FROM summary_jobs WHERE id = ?').get(jobId);
+    if (existingJob) {
       db.prepare(`
         UPDATE summary_jobs SET status='done', result=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-      `).run(JSON.stringify(fullResult), jobId);
+      `).run(JSON.stringify(result), jobId);
     }
 
-    return { ok: true, result: fullResult };
+    return { ok: true, result };
 
   } catch (err) {
     briefLog(jobId, userId, url, 'unexpected', err.message);
-    await markJobFailed(jobId, 'Unexpected error during summarization.');
+    markJobFailed(jobId, 'Unexpected error during summarization.');
     return { ok: false, error: 'Unexpected error during summarization.' };
   }
 }
@@ -257,9 +334,7 @@ router.post('/', requireAuth, async (req, res) => {
   ]);
 
   if (winner === null) {
-    // Job is still running — persist to DB and tell frontend to poll (not an error)
     db.prepare('INSERT INTO summary_jobs (id, user_id, url, status) VALUES (?, ?, ?, ?)').run(jobId, req.user.id, url.trim(), 'pending');
-    // Ensure any late rejection is caught so it doesn't become an unhandled promise rejection
     jobPromise.catch(err => briefLog(jobId, req.user.id, url.trim(), 'unexpected', err.message));
     return res.json({ status: 'pending', jobId });
   }
@@ -280,25 +355,104 @@ router.get('/status/:jobId', requireAuth, (req, res) => {
 // GET /api/summarize/history
 router.get('/history', requireAuth, (req, res) => {
   const rows = db.prepare(`
-    SELECT * FROM user_summaries
-    WHERE user_id = ?
-    ORDER BY created_at DESC
+    SELECT
+      us.id, us.share_token, us.created_at,
+      COALESCE(va.youtube_id,    us.youtube_id)    AS youtube_id,
+      COALESCE(va.title,         us.title,    '')  AS title,
+      COALESCE(va.thumbnail,     us.thumbnail)     AS thumbnail,
+      COALESCE(va.url,           us.url,      '')  AS url,
+      COALESCE(va.published_at,  us.published_at)  AS published_at,
+      COALESCE(va.summary,       us.summary,  '')  AS summary,
+      COALESCE(va.key_points,    us.key_points,    '[]') AS key_points,
+      COALESCE(va.tickers,       us.tickers,       '[]') AS tickers,
+      COALESCE(va.trade_signals, us.trade_signals, '[]') AS trade_signals,
+      COALESCE(va.recommendations, us.recommendations, '[]') AS recommendations
+    FROM user_summaries us
+    LEFT JOIN video_analyses va ON va.id = us.video_analysis_id
+    WHERE us.user_id = ?
+    ORDER BY us.created_at DESC
     LIMIT 20
   `).all(req.user.id);
 
   const history = rows.map((r) => ({
-    ...r,
-    keyPoints:       (() => { try { return JSON.parse(r.key_points   || '[]'); } catch { return []; } })(),
-    tickers:         (() => { try { return JSON.parse(r.tickers       || '[]'); } catch { return []; } })(),
-    trade_signals:   (() => { try { return JSON.parse(r.trade_signals || '[]'); } catch { return []; } })(),
-    recommendations: (() => { try { return JSON.parse(r.recommendations || '[]'); } catch { return []; } })(),
-    published_at: r.published_at || null,
+    id:              r.id,
+    share_token:     r.share_token,
+    created_at:      r.created_at,
+    youtube_id:      r.youtube_id,
+    title:           r.title,
+    thumbnail:       r.thumbnail,
+    url:             r.url,
+    published_at:    r.published_at,
+    summary:         r.summary,
+    keyPoints:       parseJSON(r.key_points, []),
+    tickers:         parseJSON(r.tickers, []),
+    trade_signals:   parseJSON(r.trade_signals, []),
+    recommendations: parseJSON(r.recommendations, []),
   }));
 
   res.json({ history });
 });
 
-// DELETE /api/summarize/history/:id
+// POST /api/summarize/shared/:shareToken — claim a shared summary into the current user's history
+router.post('/shared/:shareToken', requireAuth, (req, res) => {
+  // Look up the shared user_summaries row
+  const us = db.prepare('SELECT * FROM user_summaries WHERE share_token = ?').get(req.params.shareToken);
+  if (!us) return res.status(404).json({ error: 'Shared summary not found.' });
+
+  // Resolve the analysis — prefer video_analyses, fall back to the user_summaries row itself
+  const analysis = (
+    us.video_analysis_id
+      ? db.prepare('SELECT * FROM video_analyses WHERE id = ?').get(us.video_analysis_id)
+      : db.prepare('SELECT * FROM video_analyses WHERE youtube_id = ?').get(us.youtube_id)
+  ) || us;
+
+  // If the recipient already has this video, return their existing entry
+  const existing = db.prepare(
+    'SELECT * FROM user_summaries WHERE user_id = ? AND youtube_id = ?'
+  ).get(req.user.id, analysis.youtube_id);
+
+  if (existing) {
+    return res.json({ status: 'done', result: buildResult(existing, analysis) });
+  }
+
+  // Add to recipient's history
+  const shareToken = randomUUID().replace(/-/g, '');
+  const ins = db.prepare(`
+    INSERT INTO user_summaries
+      (user_id, youtube_id, title, thumbnail, url, summary, key_points, tickers, trade_signals, recommendations, published_at, video_analysis_id, share_token)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    req.user.id,
+    analysis.youtube_id,
+    analysis.title,
+    analysis.thumbnail,
+    analysis.url,
+    analysis.summary,
+    analysis.key_points,
+    analysis.tickers,
+    analysis.trade_signals,
+    analysis.recommendations,
+    analysis.published_at,
+    analysis.id || null,
+    shareToken,
+  );
+
+  // Prune to 20 per user
+  db.prepare(`
+    DELETE FROM user_summaries
+    WHERE user_id = ? AND id NOT IN (
+      SELECT id FROM user_summaries WHERE user_id = ? ORDER BY created_at DESC LIMIT 20
+    )
+  `).run(req.user.id, req.user.id);
+
+  db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)')
+    .run(req.user.id, 'claim_shared_summary', analysis.title || analysis.url || '');
+
+  const summaryRow = db.prepare('SELECT id, share_token, created_at FROM user_summaries WHERE id = ?').get(ins.lastInsertRowid);
+  return res.json({ status: 'done', result: buildResult(summaryRow, analysis) });
+});
+
+// DELETE /api/summarize/history/:id — removes the user's reference; analysis preserved for others
 router.delete('/history/:id', requireAuth, (req, res) => {
   const result = db.prepare(
     'DELETE FROM user_summaries WHERE id = ? AND user_id = ?'

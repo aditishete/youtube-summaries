@@ -162,6 +162,13 @@ export const deleteVideo = async (id) => {
   return res;
 };
 
+export const claimSharedSummary = async (shareToken) => {
+  const res = await apiFetch(`${BASE}/summarize/shared/${shareToken}`, { method: 'POST' });
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Failed to claim shared summary');
+  return data; // { status: 'done', result }
+};
+
 export const deleteSummaryItem = async (id) => {
   const res = await apiFetch(`${BASE}/summarize/history/${id}`, { method: 'DELETE' });
   if (!res.ok && res.status !== 204) {

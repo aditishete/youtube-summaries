@@ -7,7 +7,7 @@ import RegisterPage from './components/RegisterPage.jsx';
 import LandingPage from './components/LandingPage.jsx';
 import SummarizePage from './components/SummarizePage.jsx';
 import AnalyticsPage from './components/AnalyticsPage.jsx';
-import { getChannels, getVideos, addChannel, deleteChannel, deleteVideo, refreshChannel, setChannelSubscription, getMe, trackPageView } from './api.js';
+import { getChannels, getVideos, addChannel, deleteChannel, deleteVideo, refreshChannel, setChannelSubscription, getMe, trackPageView, claimSharedSummary } from './api.js';
 import { MAX_VIDEOS_PER_CHANNEL, MAX_RETAINED_VIDEOS_PER_CHANNEL } from './config.js';
 
 export default function App() {
@@ -16,6 +16,11 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authPage, setAuthPage] = useState('login'); // 'login' | 'register'
   const [appPage, setAppPage] = useState(() => localStorage.getItem('appPage') || 'landing');
+  const [hasPendingShare, setHasPendingShare] = useState(
+    () => !!new URLSearchParams(window.location.search).get('share') || !!sessionStorage.getItem('pendingShareToken')
+  );
+  const [pendingShareToken, setPendingShareToken] = useState(null);
+  const [claimedShareToken, setClaimedShareToken] = useState(null);
 
   // ── Dashboard state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState([]);
@@ -25,6 +30,34 @@ export default function App() {
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // ── Detect share token in URL on first load ─────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('share') || sessionStorage.getItem('pendingShareToken');
+    if (!token) return;
+    sessionStorage.setItem('pendingShareToken', token);
+    window.history.replaceState({}, '', window.location.pathname);
+    // If already authenticated, promote to React state immediately so the
+    // claim effect fires. If not yet authenticated, leave it in sessionStorage
+    // for handleLoginSuccess to pick up after login.
+    if (authStatus === 'authenticated') {
+      sessionStorage.removeItem('pendingShareToken');
+      setHasPendingShare(false);
+      setPendingShareToken(token);
+    }
+  }, [authStatus]); // re-runs when auth resolves in case token arrived before auth check finished
+
+  // ── Claim pending share token once we have one and are authenticated ─────────
+  useEffect(() => {
+    if (authStatus !== 'authenticated' || !pendingShareToken) return;
+    const token = pendingShareToken;
+    setPendingShareToken(null);
+    claimSharedSummary(token)
+      .then(({ result }) => { if (result?.share_token) setClaimedShareToken(result.share_token); })
+      .catch(() => {})
+      .finally(() => setAppPage('summarize'));
+  }, [authStatus, pendingShareToken]);
 
   // ── Wait for backend to be ready (handles Fly.io cold starts) ──────────────
   const [backendReady, setBackendReady] = useState(false);
@@ -93,13 +126,27 @@ export default function App() {
   const handleLoginSuccess = useCallback((user) => {
     setCurrentUser(user);
     setAuthStatus('authenticated');
-    setAppPage('landing');
+    const token = sessionStorage.getItem('pendingShareToken');
+    if (token) {
+      sessionStorage.removeItem('pendingShareToken');
+      setHasPendingShare(false);
+      setPendingShareToken(token); // claim effect will navigate to 'summarize'
+    } else {
+      setAppPage('landing');
+    }
   }, []);
 
   const handleRegisterSuccess = useCallback((user) => {
     setCurrentUser(user);
     setAuthStatus('authenticated');
-    setAppPage('landing');
+    const token = sessionStorage.getItem('pendingShareToken');
+    if (token) {
+      sessionStorage.removeItem('pendingShareToken');
+      setHasPendingShare(false);
+      setPendingShareToken(token); // claim effect will navigate to 'summarize'
+    } else {
+      setAppPage('landing');
+    }
   }, []);
 
   // ── Dashboard data loading ───────────────────────────────────────────────────
@@ -221,6 +268,7 @@ export default function App() {
         <RegisterPage
           onRegister={handleRegisterSuccess}
           onGoLogin={() => setAuthPage('login')}
+          pendingShare={hasPendingShare}
         />
       );
     }
@@ -228,6 +276,7 @@ export default function App() {
       <LoginPage
         onLogin={handleLoginSuccess}
         onGoRegister={() => setAuthPage('register')}
+        pendingShare={hasPendingShare}
       />
     );
   }
@@ -244,7 +293,7 @@ export default function App() {
   }
 
   if (appPage === 'summarize') {
-    return <SummarizePage onBack={() => setAppPage('landing')} onLogout={handleLogout} isGuest={currentUser?.guestMode === true} />;
+    return <SummarizePage onBack={() => setAppPage('landing')} onLogout={handleLogout} isGuest={currentUser?.guestMode === true} claimedShareToken={claimedShareToken} />;
   }
 
   if (appPage === 'analytics') {
