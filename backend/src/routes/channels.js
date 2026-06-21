@@ -204,7 +204,8 @@ router.patch('/:id', requireAdmin, async (req, res) => {
           const transcript = await fetchTranscript(item.videoId);
           const analysis = await analyzeVideo(
             { title: item.title, description: item.description, transcript, published_at: item.publishedAt },
-            channelName
+            channelName,
+            channel.category || 'market'
           );
           db.prepare(`
             UPDATE videos SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done' WHERE id = ?
@@ -288,7 +289,7 @@ router.post('/:id/refresh', requireAdmin, async (req, res) => {
             published_at: item.publishedAt,
           },
           channelName,
-          category
+          channel.category || 'market'
         );
 
         db.prepare(`
