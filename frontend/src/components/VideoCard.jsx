@@ -70,12 +70,17 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
     published_at,
     summary,
     key_points,
+    recommendations: rawRecommendations,
     tickers,
     trade_signals,
     analyzed_at,
   } = data;
 
   const keyPoints = Array.isArray(key_points) ? key_points : [];
+  const recommendations = Array.isArray(rawRecommendations) ? rawRecommendations : [];
+
+  // Suppress the market-prompt fallback text that appears on health videos analyzed before the category fix
+  const displaySummary = category === 'healthy' && summary?.startsWith('No stocks, ETFs') ? null : summary;
 
   const tickerList = Array.isArray(tickers) ? tickers : [];
   const signalList = Array.isArray(trade_signals) ? trade_signals : [];
@@ -145,7 +150,7 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
         <div className="md:flex-[2] flex flex-col justify-between border-t md:border-t-0 md:border-r border-zinc-700">
           {/* Button toolbar — sits flush at the top with its own padding */}
           <div className="px-3 md:px-4 pt-2 pb-1 flex items-center gap-2 border-b border-zinc-700/50">
-            {analyzed_at && !reanalyzing && summary ? (
+            {analyzed_at && !reanalyzing && displaySummary ? (
               <>
                 <SpeakButton id={`${id}-summary`} text={buildVideoSpeakText(data)} speakingId={speakingId} onSpeak={onSpeak} tooltipPosition="bottom" />
                 <Tooltip label="Copy a shareable link to this brief" position="bottom">
@@ -175,9 +180,19 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
                   {reanalyzing ? 'Re-analyzing…' : 'Analyzing…'}
                 </span>
               </div>
-            ) : summary ? (
+            ) : displaySummary ? (
               <>
-                <p className="text-zinc-300 text-lg leading-relaxed">{summary}</p>
+                <p className="text-zinc-300 text-lg leading-relaxed">{displaySummary}</p>
+                {category === 'healthy' && recommendations.length > 0 && keyPoints.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {keyPoints.map((pt, i) => (
+                      <li key={i} className="flex gap-2 text-zinc-400">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-900/60 text-teal-400 text-xs flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
+                        <span className="text-base">{pt}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {category !== 'healthy' && keyPoints.length > 0 && (
                   <ul className="mt-3 space-y-2">
                     {keyPoints.map((pt, i) => (
@@ -222,9 +237,20 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
         <div className="md:flex-[1.5] p-3 md:p-4 flex flex-col gap-2 border-t md:border-t-0 border-zinc-700">
           {category === 'healthy' ? (
             <>
-              <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Key Takeaways</span>
+              <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">
+                {recommendations.length > 0 ? 'Recommendations' : 'Key Takeaways'}
+              </span>
               {!analyzed_at || reanalyzing ? (
                 <div className="h-3.5 w-3.5 rounded-full border-2 border-teal-400 border-t-transparent animate-spin mt-1" />
+              ) : recommendations.length > 0 ? (
+                <ul className="space-y-2">
+                  {recommendations.map((pt, i) => (
+                    <li key={i} className="flex gap-2 text-zinc-400">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-900/60 text-teal-400 text-xs flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
+                      <span className="text-base">{pt}</span>
+                    </li>
+                  ))}
+                </ul>
               ) : keyPoints.length > 0 ? (
                 <ul className="space-y-2">
                   {keyPoints.map((pt, i) => (

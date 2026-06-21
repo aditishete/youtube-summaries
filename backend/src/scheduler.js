@@ -47,9 +47,9 @@ async function runAnalysis(video, channelName, context, category = 'market') {
 
 function markDone(videoId, analysis) {
   db.prepare(`
-    UPDATE videos SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
+    UPDATE videos SET summary = ?, key_points = ?, recommendations = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
     WHERE id = ?
-  `).run(analysis.summary, JSON.stringify(analysis.keyPoints || []), JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), videoId);
+  `).run(analysis.summary, JSON.stringify(analysis.keyPoints || []), JSON.stringify(analysis.recommendations || []), JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), videoId);
 }
 
 function markFailed(videoId) {

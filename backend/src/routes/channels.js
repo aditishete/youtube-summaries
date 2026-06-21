@@ -127,11 +127,12 @@ router.post('/', requireAdmin, async (req, res) => {
 
         db.prepare(`
           UPDATE videos
-          SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
+          SET summary = ?, key_points = ?, recommendations = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
           WHERE id = ?
         `).run(
           analysis.summary,
           JSON.stringify(analysis.keyPoints || []),
+          JSON.stringify(analysis.recommendations || []),
           JSON.stringify(analysis.tickers),
           JSON.stringify(analysis.trade_signals),
           videoRowId
@@ -140,9 +141,10 @@ router.post('/', requireAdmin, async (req, res) => {
         const videoRow = db.prepare('SELECT * FROM videos WHERE id = ?').get(videoRowId);
         insertedVideos.push({
           ...videoRow,
-          key_points:    JSON.parse(videoRow.key_points   || '[]'),
-          tickers:       JSON.parse(videoRow.tickers      || '[]'),
-          trade_signals: JSON.parse(videoRow.trade_signals|| '[]'),
+          key_points:      JSON.parse(videoRow.key_points      || '[]'),
+          recommendations: JSON.parse(videoRow.recommendations || '[]'),
+          tickers:         JSON.parse(videoRow.tickers         || '[]'),
+          trade_signals:   JSON.parse(videoRow.trade_signals   || '[]'),
         });
         analyzed++;
       } catch (videoErr) {
@@ -208,8 +210,8 @@ router.patch('/:id', requireAdmin, async (req, res) => {
             channel.category || 'market'
           );
           db.prepare(`
-            UPDATE videos SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done' WHERE id = ?
-          `).run(analysis.summary, JSON.stringify(analysis.keyPoints || []), JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), videoResult.lastInsertRowid);
+            UPDATE videos SET summary = ?, key_points = ?, recommendations = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done' WHERE id = ?
+          `).run(analysis.summary, JSON.stringify(analysis.keyPoints || []), JSON.stringify(analysis.recommendations || []), JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), videoResult.lastInsertRowid);
         } catch (analysisErr) {
           console.error(`Error analyzing video ${item.videoId}:`, analysisErr.message);
           db.prepare("UPDATE videos SET analysis_status = 'failed' WHERE id = ? AND analysis_status = 'pending'").run(videoResult.lastInsertRowid);
@@ -262,11 +264,12 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
           channel.category || 'market'
         );
         db.prepare(`
-          UPDATE videos SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?,
+          UPDATE videos SET summary = ?, key_points = ?, recommendations = ?, tickers = ?, trade_signals = ?,
             analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done' WHERE id = ?
         `).run(
           analysis.summary,
           JSON.stringify(analysis.keyPoints || []),
+          JSON.stringify(analysis.recommendations || []),
           JSON.stringify(analysis.tickers),
           JSON.stringify(analysis.trade_signals),
           video.id
@@ -342,11 +345,12 @@ router.post('/:id/refresh', requireAdmin, async (req, res) => {
 
         db.prepare(`
           UPDATE videos
-          SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
+          SET summary = ?, key_points = ?, recommendations = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
           WHERE id = ?
         `).run(
           analysis.summary,
           JSON.stringify(analysis.keyPoints || []),
+          JSON.stringify(analysis.recommendations || []),
           JSON.stringify(analysis.tickers),
           JSON.stringify(analysis.trade_signals),
           videoRowId

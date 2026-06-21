@@ -258,6 +258,8 @@ try { db.exec("ALTER TABLE videos ADD COLUMN analysis_status TEXT NOT NULL DEFAU
 try { db.exec("UPDATE videos SET analysis_status = 'done' WHERE analyzed_at IS NOT NULL AND analysis_status = 'pending'"); } catch (_) {}
 // Add key_points to videos — aligned with video brief quality
 try { db.exec("ALTER TABLE videos ADD COLUMN key_points TEXT DEFAULT '[]'"); } catch (_) {}
+// Add recommendations to videos — actionable viewer takeaways (health briefs)
+try { db.exec("ALTER TABLE videos ADD COLUMN recommendations TEXT DEFAULT '[]'"); } catch (_) {}
 
 // Observability error tables
 db.exec(`

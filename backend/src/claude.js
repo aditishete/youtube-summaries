@@ -6,7 +6,7 @@ const MARKET_BRIEF_AI_TIMEOUT_MS = parseInt(process.env.MARKET_BRIEF_AI_TIMEOUT_
 
 /**
  * Analyzes a YouTube video using its transcript (preferred) or description.
- * Returns { summary, keyPoints, tickers, trade_signals } on success.
+ * Returns { summary, keyPoints, recommendations, tickers, trade_signals } on success.
  * Throws an Error with a `phase` property ('ai', 'timeout', 'parse') on failure.
  */
 export async function analyzeVideo(video, channelName, category = 'market') {
@@ -25,15 +25,17 @@ ${content}
 
 Respond with ONLY a JSON object, no markdown fences:
 {
-  "summary": "3-5 sentence plain-English summary of the main health topic and key advice",
-  "keyPoints": ["Actionable takeaway 1", "Actionable takeaway 2"],
+  "summary": "3-5 sentence plain-English summary",
+  "keyPoints": ["Key finding or insight 1", "Key finding or insight 2"],
+  "recommendations": ["Actionable recommendation 1", "Actionable recommendation 2"],
   "tickers": [],
   "trade_signals": []
 }
 
 Rules:
-- summary: plain English, concise; cover the core health topic, key findings, or advice the speaker shares
-- keyPoints: 5-8 most useful and actionable health or wellness takeaways from the video (specific habits, foods, exercises, dosages, studies cited, warnings, etc.)
+- summary: 3-5 sentences, plain English; cover the core health topic and the main advice or findings — concise but complete enough that someone who skips the video gets the gist
+- keyPoints: 5-8 of the most important health or wellness insights from the video (specific findings, dosages, research cited, mechanisms explained, risks flagged, foods/exercises named, expert opinions)
+- recommendations: 3-5 specific, actionable things the viewer should do or consider based on this video (habits to adopt, changes to make, things to discuss with a doctor, products/foods to try or avoid); focus on the most practical advice
 - tickers: always an empty array
 - trade_signals: always an empty array
 - summary is always required — write one even if the video is brief`
@@ -67,7 +69,7 @@ Rules:
 - summary is always required — write one even if no stocks are discussed`;
 
   const systemPrompt = isHealth
-    ? 'You are a health and wellness AI that summarizes YouTube health videos. Be concise, accurate, and focus on actionable takeaways. Always produce a summary.'
+    ? 'You are a health and wellness AI that summarizes YouTube health videos. Be thorough, accurate, and focus on actionable insights. Never mention stocks, investments, or financial topics. Always produce a summary.'
     : 'You are a financial analyst AI that summarizes YouTube investment videos. Be concise and precise. Always produce a summary.';
 
   let response;
@@ -99,10 +101,11 @@ Rules:
   try {
     const parsed = JSON.parse(cleaned);
     return {
-      summary:      parsed.summary      || '',
-      keyPoints:    Array.isArray(parsed.keyPoints)     ? parsed.keyPoints     : [],
-      tickers:      Array.isArray(parsed.tickers)       ? parsed.tickers       : [],
-      trade_signals: Array.isArray(parsed.trade_signals) ? parsed.trade_signals : [],
+      summary:        parsed.summary        || '',
+      keyPoints:      Array.isArray(parsed.keyPoints)      ? parsed.keyPoints      : [],
+      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+      tickers:        Array.isArray(parsed.tickers)        ? parsed.tickers        : [],
+      trade_signals:  Array.isArray(parsed.trade_signals)  ? parsed.trade_signals  : [],
     };
   } catch {
     const e = new Error(`Failed to parse AI response: ${text.slice(0, 200)}`);

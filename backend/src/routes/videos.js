@@ -63,9 +63,10 @@ router.get('/', requireAuth, (req, res) => {
     // Parse JSON fields
     const videos = rows.map((row) => ({
       ...row,
-      key_points:   (() => { try { return JSON.parse(row.key_points   || '[]'); } catch { return []; } })(),
-      tickers:      (() => { try { return JSON.parse(row.tickers      || '[]'); } catch { return []; } })(),
-      trade_signals:(() => { try { return JSON.parse(row.trade_signals|| '[]'); } catch { return []; } })(),
+      key_points:      (() => { try { return JSON.parse(row.key_points      || '[]'); } catch { return []; } })(),
+      recommendations: (() => { try { return JSON.parse(row.recommendations || '[]'); } catch { return []; } })(),
+      tickers:         (() => { try { return JSON.parse(row.tickers         || '[]'); } catch { return []; } })(),
+      trade_signals:   (() => { try { return JSON.parse(row.trade_signals   || '[]'); } catch { return []; } })(),
     }));
 
     res.json({ videos, total });
@@ -86,9 +87,10 @@ router.get('/:id', requireAuth, (req, res) => {
     if (!row) return res.status(404).json({ error: 'Video not found' });
     res.json({
       ...row,
-      key_points:    (() => { try { return JSON.parse(row.key_points    || '[]'); } catch { return []; } })(),
-      tickers:       (() => { try { return JSON.parse(row.tickers       || '[]'); } catch { return []; } })(),
-      trade_signals: (() => { try { return JSON.parse(row.trade_signals || '[]'); } catch { return []; } })(),
+      key_points:      (() => { try { return JSON.parse(row.key_points      || '[]'); } catch { return []; } })(),
+      recommendations: (() => { try { return JSON.parse(row.recommendations || '[]'); } catch { return []; } })(),
+      tickers:         (() => { try { return JSON.parse(row.tickers         || '[]'); } catch { return []; } })(),
+      trade_signals:   (() => { try { return JSON.parse(row.trade_signals   || '[]'); } catch { return []; } })(),
     });
   } catch (err) {
     console.error('GET /videos/:id error:', err);
@@ -100,7 +102,7 @@ router.get('/:id', requireAuth, (req, res) => {
 router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
   try {
     const row = db.prepare(`
-      SELECT v.*, c.name AS channel_name
+      SELECT v.*, c.name AS channel_name, c.category AS channel_category
       FROM videos v JOIN channels c ON c.id = v.channel_id
       WHERE v.id = ?
     `).get(req.params.id);
@@ -113,22 +115,24 @@ router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
     const transcript = await fetchTranscript(row.youtube_id);
     const analysis = await analyzeVideo(
       { title: row.title, description: row.description, transcript, published_at: row.published_at },
-      row.channel_name
+      row.channel_name,
+      row.channel_category || 'market'
     );
 
     db.prepare(`
-      UPDATE videos SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
+      UPDATE videos SET summary = ?, key_points = ?, recommendations = ?, tickers = ?, trade_signals = ?, analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done'
       WHERE id = ?
-    `).run(analysis.summary, JSON.stringify(analysis.keyPoints || []), JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), row.id);
+    `).run(analysis.summary, JSON.stringify(analysis.keyPoints || []), JSON.stringify(analysis.recommendations || []), JSON.stringify(analysis.tickers), JSON.stringify(analysis.trade_signals), row.id);
     db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(req.user.id, 'reanalyze_video', row.title);
 
     res.json({
-      summary:      analysis.summary,
-      key_points:   analysis.keyPoints || [],
-      tickers:      analysis.tickers,
-      trade_signals: analysis.trade_signals,
-      analyzed_at:  new Date().toISOString(),
-      had_transcript: !!transcript,
+      summary:         analysis.summary,
+      key_points:      analysis.keyPoints || [],
+      recommendations: analysis.recommendations || [],
+      tickers:         analysis.tickers,
+      trade_signals:   analysis.trade_signals,
+      analyzed_at:     new Date().toISOString(),
+      had_transcript:  !!transcript,
     });
   } catch (err) {
     // Mark failed if the video record exists and analysis errored out
