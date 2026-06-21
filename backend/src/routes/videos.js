@@ -68,6 +68,27 @@ router.get('/', requireAuth, (req, res) => {
   }
 });
 
+// GET /api/videos/:id — fetch a single video by internal id
+router.get('/:id', requireAuth, (req, res) => {
+  try {
+    const row = db.prepare(`
+      SELECT v.*, c.name AS channel_name
+      FROM videos v JOIN channels c ON c.id = v.channel_id
+      WHERE v.id = ? AND v.analysis_status = 'done'
+    `).get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Video not found' });
+    res.json({
+      ...row,
+      key_points:    (() => { try { return JSON.parse(row.key_points    || '[]'); } catch { return []; } })(),
+      tickers:       (() => { try { return JSON.parse(row.tickers       || '[]'); } catch { return []; } })(),
+      trade_signals: (() => { try { return JSON.parse(row.trade_signals || '[]'); } catch { return []; } })(),
+    });
+  } catch (err) {
+    console.error('GET /videos/:id error:', err);
+    res.status(500).json({ error: 'Failed to fetch video' });
+  }
+});
+
 // POST /api/videos/:id/reanalyze — re-run Claude on a single video using its transcript
 router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
   try {

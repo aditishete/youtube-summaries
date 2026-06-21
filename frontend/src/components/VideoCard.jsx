@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import SignalBadge from './SignalBadge.jsx';
 import { reanalyzeVideo } from '../api.js';
 import { SpeakButton } from './SpeakButton.jsx';
@@ -35,9 +35,26 @@ function buildVideoRecsText(data) {
   return parts.join('. ');
 }
 
-export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSpeak, isAdmin }) {
+export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSpeak, isAdmin, isHighlighted }) {
   const [imgError, setImgError] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [highlighted, setHighlighted] = useState(false);
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (!isHighlighted) return;
+    setHighlighted(true);
+    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => setHighlighted(false), 3000);
+    return () => clearTimeout(t);
+  }, [isHighlighted]);
+
+  function handleShare() {
+    navigator.clipboard.writeText(`${window.location.origin}/?video=${video.id}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   // Allow local override after reanalysis
   const [localData, setLocalData] = useState(null);
@@ -82,7 +99,7 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
   }
 
   return (
-    <div className="bg-zinc-800 rounded-xl border border-zinc-700 hover:border-zinc-500 transition-colors duration-150 overflow-hidden">
+    <div ref={cardRef} className={`bg-zinc-800 rounded-xl border transition-colors duration-150 overflow-hidden ${highlighted ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-zinc-700 hover:border-zinc-500'}`}>
       {/* Mobile: stacked layout. Desktop: 3-column row */}
       <div className="flex flex-col md:flex-row">
         {/* ── Column 1: Thumbnail + title ── */}
@@ -135,8 +152,15 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
               </div>
             ) : summary ? (
               <>
-                <div className="mb-2">
+                <div className="mb-2 flex items-center gap-2">
                   <SpeakButton id={`${id}-summary`} text={buildVideoSpeakText(data)} speakingId={speakingId} onSpeak={onSpeak} />
+                  <button
+                    onClick={handleShare}
+                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-zinc-200 hover:border-zinc-400 transition-colors"
+                    title="Copy link to this market brief"
+                  >
+                    {copied ? '✓ Copied' : 'Share'}
+                  </button>
                 </div>
                 <p className="text-zinc-300 text-lg leading-relaxed">{summary}</p>
                 {keyPoints.length > 0 && (

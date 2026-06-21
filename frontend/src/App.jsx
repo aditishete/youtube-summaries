@@ -7,7 +7,7 @@ import RegisterPage from './components/RegisterPage.jsx';
 import LandingPage from './components/LandingPage.jsx';
 import SummarizePage from './components/SummarizePage.jsx';
 import AnalyticsPage from './components/AnalyticsPage.jsx';
-import { getChannels, getVideos, addChannel, deleteChannel, deleteVideo, refreshChannel, setChannelSubscription, getMe, trackPageView, claimSharedSummary } from './api.js';
+import { getChannels, getVideos, getVideo, addChannel, deleteChannel, deleteVideo, refreshChannel, setChannelSubscription, getMe, trackPageView, claimSharedSummary } from './api.js';
 import { MAX_VIDEOS_PER_CHANNEL, MAX_RETAINED_VIDEOS_PER_CHANNEL } from './config.js';
 
 export default function App() {
@@ -21,6 +21,11 @@ export default function App() {
   );
   const [pendingShareToken, setPendingShareToken] = useState(null);
   const [claimedShareToken, setClaimedShareToken] = useState(null);
+  const [hasPendingVideoLink, setHasPendingVideoLink] = useState(
+    () => !!new URLSearchParams(window.location.search).get('video') || !!sessionStorage.getItem('pendingVideoId')
+  );
+  const [pendingVideoId, setPendingVideoId] = useState(null);
+  const [targetVideoId, setTargetVideoId] = useState(null);
 
   // ── Dashboard state ─────────────────────────────────────────────────────────
   const [channels, setChannels] = useState([]);
@@ -31,20 +36,28 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // ── Detect share token in URL on first load ─────────────────────────────────
+  // ── Detect share token / video link in URL on first load ────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('share') || sessionStorage.getItem('pendingShareToken');
-    if (!token) return;
-    sessionStorage.setItem('pendingShareToken', token);
-    window.history.replaceState({}, '', window.location.pathname);
-    // If already authenticated, promote to React state immediately so the
-    // claim effect fires. If not yet authenticated, leave it in sessionStorage
-    // for handleLoginSuccess to pick up after login.
+    const shareToken = params.get('share') || sessionStorage.getItem('pendingShareToken');
+    const videoId = params.get('video') || sessionStorage.getItem('pendingVideoId');
+    if (!shareToken && !videoId) return;
+    if (shareToken) sessionStorage.setItem('pendingShareToken', shareToken);
+    if (videoId) sessionStorage.setItem('pendingVideoId', videoId);
+    if (params.has('share') || params.has('video')) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     if (authStatus === 'authenticated') {
-      sessionStorage.removeItem('pendingShareToken');
-      setHasPendingShare(false);
-      setPendingShareToken(token);
+      if (shareToken) {
+        sessionStorage.removeItem('pendingShareToken');
+        setHasPendingShare(false);
+        setPendingShareToken(shareToken);
+      }
+      if (videoId) {
+        sessionStorage.removeItem('pendingVideoId');
+        setHasPendingVideoLink(false);
+        setPendingVideoId(parseInt(videoId, 10));
+      }
     }
   }, [authStatus]); // re-runs when auth resolves in case token arrived before auth check finished
 
@@ -58,6 +71,29 @@ export default function App() {
       .catch(() => {})
       .finally(() => setAppPage('summarize'));
   }, [authStatus, pendingShareToken]);
+
+  // ── Resolve pending video link once authenticated and videos are loaded ───────
+  useEffect(() => {
+    if (authStatus !== 'authenticated' || !pendingVideoId || loading) return;
+    const id = pendingVideoId;
+    setPendingVideoId(null);
+    const found = videos.find(v => v.id === id);
+    if (found) {
+      setSelectedChannelId(null);
+      setTargetVideoId(id);
+      setAppPage('dashboard');
+      setTimeout(() => setTargetVideoId(null), 4000);
+    } else {
+      getVideo(id)
+        .then(video => {
+          setSelectedChannelId(video.channel_id);
+          setTargetVideoId(id);
+          setAppPage('dashboard');
+          setTimeout(() => setTargetVideoId(null), 4000);
+        })
+        .catch(() => setAppPage('dashboard'));
+    }
+  }, [authStatus, pendingVideoId, loading, videos]);
 
   // ── Wait for backend to be ready (handles Fly.io cold starts) ──────────────
   const [backendReady, setBackendReady] = useState(false);
@@ -126,11 +162,16 @@ export default function App() {
   const handleLoginSuccess = useCallback((user) => {
     setCurrentUser(user);
     setAuthStatus('authenticated');
-    const token = sessionStorage.getItem('pendingShareToken');
-    if (token) {
+    const shareToken = sessionStorage.getItem('pendingShareToken');
+    const videoId = sessionStorage.getItem('pendingVideoId');
+    if (shareToken) {
       sessionStorage.removeItem('pendingShareToken');
       setHasPendingShare(false);
-      setPendingShareToken(token); // claim effect will navigate to 'summarize'
+      setPendingShareToken(shareToken); // claim effect will navigate to 'summarize'
+    } else if (videoId) {
+      sessionStorage.removeItem('pendingVideoId');
+      setHasPendingVideoLink(false);
+      setPendingVideoId(parseInt(videoId, 10)); // resolution effect will navigate to 'dashboard'
     } else {
       setAppPage('landing');
     }
@@ -139,11 +180,16 @@ export default function App() {
   const handleRegisterSuccess = useCallback((user) => {
     setCurrentUser(user);
     setAuthStatus('authenticated');
-    const token = sessionStorage.getItem('pendingShareToken');
-    if (token) {
+    const shareToken = sessionStorage.getItem('pendingShareToken');
+    const videoId = sessionStorage.getItem('pendingVideoId');
+    if (shareToken) {
       sessionStorage.removeItem('pendingShareToken');
       setHasPendingShare(false);
-      setPendingShareToken(token); // claim effect will navigate to 'summarize'
+      setPendingShareToken(shareToken); // claim effect will navigate to 'summarize'
+    } else if (videoId) {
+      sessionStorage.removeItem('pendingVideoId');
+      setHasPendingVideoLink(false);
+      setPendingVideoId(parseInt(videoId, 10)); // resolution effect will navigate to 'dashboard'
     } else {
       setAppPage('landing');
     }
@@ -269,6 +315,7 @@ export default function App() {
           onRegister={handleRegisterSuccess}
           onGoLogin={() => setAuthPage('login')}
           pendingShare={hasPendingShare}
+          pendingVideoLink={hasPendingVideoLink}
         />
       );
     }
@@ -277,6 +324,7 @@ export default function App() {
         onLogin={handleLoginSuccess}
         onGoRegister={() => setAuthPage('register')}
         pendingShare={hasPendingShare}
+        pendingVideoLink={hasPendingVideoLink}
       />
     );
   }
@@ -392,6 +440,7 @@ export default function App() {
             isAdmin={currentUser?.role === 'admin'}
             isGuest={currentUser?.guestMode === true}
             onDeleteVideo={handleDeleteVideo}
+            targetVideoId={targetVideoId}
           />
         )}
       </main>

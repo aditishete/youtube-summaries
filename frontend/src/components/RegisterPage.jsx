@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { register } from '../api.js';
 
-export default function RegisterPage({ onRegister, onGoLogin, pendingShare }) {
+export default function RegisterPage({ onRegister, onGoLogin, pendingShare, pendingVideoLink }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -59,6 +59,14 @@ export default function RegisterPage({ onRegister, onGoLogin, pendingShare }) {
               <span className="text-violet-400 flex-shrink-0 mt-0.5">▶</span>
               <p className="text-violet-200 text-sm leading-snug">
                 Someone shared a video analysis with you. Create an account to view it.
+              </p>
+            </div>
+          )}
+          {pendingVideoLink && (
+            <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg px-4 py-3 mb-4 flex items-start gap-2.5">
+              <span className="text-blue-400 flex-shrink-0 mt-0.5">📈</span>
+              <p className="text-blue-200 text-sm leading-snug">
+                Someone shared a market brief with you. Create an account to view it.
               </p>
             </div>
           )}

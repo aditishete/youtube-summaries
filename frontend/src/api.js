@@ -153,6 +153,13 @@ export const getSummaryHistory = async () => {
   return data;
 };
 
+export const getVideo = async (id) => {
+  const res = await apiFetch(`${BASE}/videos/${id}`);
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch video');
+  return data;
+};
+
 export const deleteVideo = async (id) => {
   const res = await apiFetch(`${BASE}/videos/${id}`, { method: 'DELETE' });
   if (!res.ok && res.status !== 204) {
