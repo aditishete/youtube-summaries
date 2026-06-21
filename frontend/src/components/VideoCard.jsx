@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import SignalBadge from './SignalBadge.jsx';
 import { reanalyzeVideo } from '../api.js';
 import { SpeakButton } from './SpeakButton.jsx';
+import Tooltip from './Tooltip.jsx';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -152,15 +153,20 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
               </div>
             ) : summary ? (
               <>
-                <div className="mb-2 flex items-center gap-2">
+                <div className="mb-3 flex items-center gap-2">
                   <SpeakButton id={`${id}-summary`} text={buildVideoSpeakText(data)} speakingId={speakingId} onSpeak={onSpeak} />
-                  <button
-                    onClick={handleShare}
-                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-zinc-200 hover:border-zinc-400 transition-colors"
-                    title="Copy link to this brief"
-                  >
-                    {copied ? '✓ Copied' : 'Share'}
-                  </button>
+                  <Tooltip label="Copy a shareable link to this brief">
+                    <button
+                      onClick={handleShare}
+                      className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+                        copied
+                          ? 'bg-emerald-700/40 border-emerald-500 text-emerald-200'
+                          : 'bg-zinc-700 border-zinc-500 text-zinc-200 hover:bg-zinc-600 hover:border-zinc-400'
+                      }`}
+                    >
+                      {copied ? '✓ Copied' : '⤴ Share'}
+                    </button>
+                  </Tooltip>
                 </div>
                 <p className="text-zinc-300 text-lg leading-relaxed">{summary}</p>
                 {category !== 'healthy' && keyPoints.length > 0 && (
@@ -179,23 +185,25 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
             )}
           </div>
           {analyzed_at && !reanalyzing && isAdmin && (
-            <div className="flex items-center gap-3 self-end">
-              <button
-                onClick={handleReanalyze}
-                className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
-                title="Re-run Claude analysis using the video transcript"
-              >
-                ↻ re-analyze
-              </button>
-              <button
-                onClick={() => {
-                  if (window.confirm(`Delete "${title}" from the database?`)) onDelete?.(id);
-                }}
-                className="text-xs text-zinc-600 hover:text-red-400 transition-colors"
-                title="Permanently delete this video from the database"
-              >
-                ✕ delete
-              </button>
+            <div className="flex items-center gap-2 pt-2 border-t border-zinc-700/50">
+              <Tooltip label="Re-run Claude AI analysis using this video's transcript">
+                <button
+                  onClick={handleReanalyze}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border bg-zinc-900 border-violet-700 text-violet-400 hover:bg-violet-900/40 hover:border-violet-500 hover:text-violet-300 transition-colors"
+                >
+                  ↻ Re-analyze
+                </button>
+              </Tooltip>
+              <Tooltip label="Permanently delete this video from the database">
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Delete "${title}" from the database?`)) onDelete?.(id);
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border bg-zinc-900 border-red-800 text-red-400 hover:bg-red-900/40 hover:border-red-500 hover:text-red-300 transition-colors"
+                >
+                  ✕ Delete
+                </button>
+              </Tooltip>
             </div>
           )}
         </div>
@@ -222,7 +230,7 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
             </>
           ) : (
             <>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Recommendations</span>
                 {analyzed_at && !reanalyzing && buildVideoRecsText(data) && (
                   <SpeakButton id={`${id}-recs`} text={buildVideoRecsText(data)} speakingId={speakingId} onSpeak={onSpeak} />

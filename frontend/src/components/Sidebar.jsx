@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
+import Tooltip from './Tooltip.jsx';
 
-function Tip({ label, children }) {
-  return (
-    <div className="relative group/tip">
-      {children}
-      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 text-zinc-200 rounded whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity z-50">
-        {label}
-      </div>
-    </div>
-  );
-}
+const Tip = ({ label, children }) => <Tooltip label={label}>{children}</Tooltip>;
 
 function TrashIcon() {
   return (
@@ -42,6 +34,17 @@ function RefreshIcon() {
   );
 }
 
+function ReanalyzeIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a10 10 0 1 0 10 10" />
+      <polyline points="22 2 22 8 16 8" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  );
+}
+
 function UnsubscribeIcon() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -66,6 +69,7 @@ export default function Sidebar({
   onAdd,
   onDelete,
   onRefresh,
+  onReanalyze,
   onToggleSubscription,
   loading,
   currentUser,
@@ -78,6 +82,7 @@ export default function Sidebar({
 }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [refreshingId, setRefreshingId] = useState(null);
+  const [reanalyzingId, setReanalyzingId] = useState(null);
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -88,6 +93,17 @@ export default function Sidebar({
       await onRefresh(channelId);
     } finally {
       setRefreshingId(null);
+    }
+  };
+
+  const handleReanalyze = async (e, channelId, channelName) => {
+    e.stopPropagation();
+    if (!window.confirm(`Re-analyze all videos in "${channelName}" with Claude? This may take a few minutes.`)) return;
+    setReanalyzingId(channelId);
+    try {
+      await onReanalyze(channelId);
+    } finally {
+      setReanalyzingId(null);
     }
   };
 
@@ -170,66 +186,76 @@ export default function Sidebar({
           return (
             <div
               key={channel.id}
-              className={`relative flex items-center group cursor-pointer transition-colors duration-100 ${
+              className={`relative flex flex-col cursor-pointer transition-colors duration-100 ${
                 selectedChannelId === channel.id
                   ? 'bg-blue-600/20 border-r-2 border-blue-500'
                   : 'hover:bg-zinc-800'
               }`}
               onClick={() => onSelect(channel.id)}
-              onMouseEnter={() => setHoveredId(channel.id)}
-              onMouseLeave={() => setHoveredId(null)}
             >
-              <div className="flex-1 px-4 py-2.5 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {!isSubscribed && (
-                      <span className="text-xs text-amber-500 flex-shrink-0" title="Unsubscribed — not polling for new videos">⏸</span>
-                    )}
-                    <span
-                      className={`text-sm font-medium truncate ${
-                        selectedChannelId === channel.id
-                          ? 'text-blue-300'
-                          : isSubscribed ? 'text-zinc-300' : 'text-zinc-500'
-                      }`}
-                      title={channel.name}
-                    >
-                      {channel.name}
-                    </span>
-                  </div>
+              {/* Channel name row */}
+              <div className="flex items-center justify-between gap-2 px-4 pt-2.5 pb-1 min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {!isSubscribed && (
+                    <span className="text-xs text-amber-500 flex-shrink-0" title="Unsubscribed — not polling for new videos">⏸</span>
+                  )}
                   <span
-                    className={`text-xs px-1.5 py-0.5 rounded-full font-mono flex-shrink-0 ${
+                    className={`text-sm font-medium truncate ${
                       selectedChannelId === channel.id
-                        ? 'bg-blue-600/40 text-blue-300'
-                        : 'bg-zinc-700 text-zinc-400'
+                        ? 'text-blue-300'
+                        : isSubscribed ? 'text-zinc-300' : 'text-zinc-500'
                     }`}
+                    title={channel.name}
                   >
-                    {visibleCountByChannel[channel.id] ?? channel.video_count ?? 0}
+                    {channel.name}
                   </span>
                 </div>
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded-full font-mono flex-shrink-0 ${
+                    selectedChannelId === channel.id
+                      ? 'bg-blue-600/40 text-blue-300'
+                      : 'bg-zinc-700 text-zinc-400'
+                  }`}
+                >
+                  {visibleCountByChannel[channel.id] ?? channel.video_count ?? 0}
+                </span>
               </div>
 
-              {/* Action buttons — only for admins, visible on hover */}
-              {isAdmin && hoveredId === channel.id && (
-                <div className="flex items-center gap-1 pr-3 flex-shrink-0">
+              {/* Admin action buttons — always visible */}
+              {isAdmin && (
+                <div className="flex items-center gap-1.5 px-4 pb-2" onClick={e => e.stopPropagation()}>
                   {isSubscribed && (
                     <Tip label="Fetch new videos now">
                       <button
                         onClick={(e) => handleRefresh(e, channel.id)}
                         disabled={refreshingId === channel.id}
-                        className={`p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors ${
-                          refreshingId === channel.id ? 'animate-spin text-blue-400' : ''
-                        }`}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border transition-colors
+                          bg-zinc-800 border-zinc-600 text-blue-400 hover:bg-blue-900/40 hover:border-blue-500 hover:text-blue-300
+                          disabled:opacity-50 ${refreshingId === channel.id ? 'animate-spin' : ''}`}
                       >
                         <RefreshIcon />
                       </button>
                     </Tip>
                   )}
-                  <Tip label={isSubscribed ? 'Unsubscribe (keep videos, stop polling)' : 'Subscribe (resume polling)'}>
+                  <Tip label="Re-analyze all videos with Claude">
+                    <button
+                      onClick={(e) => handleReanalyze(e, channel.id, channel.name)}
+                      disabled={reanalyzingId === channel.id}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border transition-colors
+                        bg-zinc-800 border-zinc-600 text-violet-400 hover:bg-violet-900/40 hover:border-violet-500 hover:text-violet-300
+                        disabled:opacity-50 ${reanalyzingId === channel.id ? 'animate-spin' : ''}`}
+                    >
+                      <ReanalyzeIcon />
+                    </button>
+                  </Tip>
+                  <Tip label={isSubscribed ? 'Pause polling (keep videos)' : 'Resume polling'}>
                     <button
                       onClick={(e) => { e.stopPropagation(); onToggleSubscription(channel.id, !isSubscribed); }}
-                      className={`p-1 rounded hover:bg-zinc-700 transition-colors ${
-                        isSubscribed ? 'text-zinc-500 hover:text-amber-400' : 'text-amber-500 hover:text-emerald-400'
-                      }`}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border transition-colors
+                        ${isSubscribed
+                          ? 'bg-zinc-800 border-zinc-600 text-amber-400 hover:bg-amber-900/40 hover:border-amber-500 hover:text-amber-300'
+                          : 'bg-amber-900/30 border-amber-700 text-amber-400 hover:bg-emerald-900/40 hover:border-emerald-500 hover:text-emerald-300'
+                        }`}
                     >
                       {isSubscribed ? <UnsubscribeIcon /> : <ResubscribeIcon />}
                     </button>
@@ -237,7 +263,8 @@ export default function Sidebar({
                   <Tip label="Remove channel and all videos">
                     <button
                       onClick={(e) => handleDelete(e, channel.id)}
-                      className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border transition-colors
+                        bg-zinc-800 border-zinc-600 text-red-400 hover:bg-red-900/40 hover:border-red-500 hover:text-red-300"
                     >
                       <TrashIcon />
                     </button>

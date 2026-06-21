@@ -117,6 +117,13 @@ export const refreshChannel = async (id) => {
   return data;
 };
 
+export const reanalyzeChannel = async (id) => {
+  const res = await apiFetch(`${BASE}/channels/${id}/reanalyze`, { method: 'POST' });
+  const data = await safeJSON(res);
+  if (!res.ok) throw new Error(data.error || 'Failed to reanalyze channel');
+  return data;
+};
+
 // ── Videos API ────────────────────────────────────────────────────────────────
 
 export const getVideos = async (channelId = null, limit = 50, offset = 0, auto = false, category = 'market', market = null) => {

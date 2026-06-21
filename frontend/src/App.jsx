@@ -7,7 +7,7 @@ import RegisterPage from './components/RegisterPage.jsx';
 import LandingPage from './components/LandingPage.jsx';
 import SummarizePage from './components/SummarizePage.jsx';
 import AnalyticsPage from './components/AnalyticsPage.jsx';
-import { getChannels, getVideos, getVideo, addChannel, deleteChannel, deleteVideo, refreshChannel, setChannelSubscription, getMe, trackPageView, claimSharedSummary } from './api.js';
+import { getChannels, getVideos, getVideo, addChannel, deleteChannel, deleteVideo, refreshChannel, reanalyzeChannel, setChannelSubscription, getMe, trackPageView, claimSharedSummary } from './api.js';
 import { MAX_VIDEOS_PER_CHANNEL, MAX_RETAINED_VIDEOS_PER_CHANNEL } from './config.js';
 
 export default function App() {
@@ -302,6 +302,15 @@ export default function App() {
     }
   }, [loadChannels, loadVideos, selectedChannelId, category, effectiveMarket]);
 
+  const handleReanalyzeChannel = useCallback(async (id) => {
+    try {
+      await reanalyzeChannel(id);
+      await loadVideos(selectedChannelId, false, category, effectiveMarket);
+    } catch (err) {
+      console.error('Failed to reanalyze channel:', err);
+    }
+  }, [loadVideos, selectedChannelId, category, effectiveMarket]);
+
   // ── Render ───────────────────────────────────────────────────────────────────
 
   if (!backendReady || authStatus === 'checking') {
@@ -367,6 +376,7 @@ export default function App() {
           onAdd={() => setShowAddModal(true)}
           onDelete={handleChannelDeleted}
           onRefresh={handleRefreshChannel}
+          onReanalyze={handleReanalyzeChannel}
           onToggleSubscription={handleToggleSubscription}
           loading={loading}
           currentUser={currentUser}

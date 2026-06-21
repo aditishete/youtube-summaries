@@ -241,6 +241,54 @@ router.delete('/:id', requireAdmin, (req, res) => {
   }
 });
 
+// POST /api/channels/:id/reanalyze — re-run Claude on all existing videos in a channel
+router.post('/:id/reanalyze', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(id);
+    if (!channel) return res.status(404).json({ error: 'Channel not found' });
+
+    const videos = db.prepare("SELECT * FROM videos WHERE channel_id = ?").all(id);
+    let reanalyzed = 0;
+    let failed = 0;
+
+    for (const video of videos) {
+      db.prepare("UPDATE videos SET analysis_status = 'pending' WHERE id = ?").run(video.id);
+      try {
+        const transcript = await fetchTranscript(video.youtube_id);
+        const analysis = await analyzeVideo(
+          { title: video.title, description: video.description, transcript, published_at: video.published_at },
+          channel.name,
+          channel.category || 'market'
+        );
+        db.prepare(`
+          UPDATE videos SET summary = ?, key_points = ?, tickers = ?, trade_signals = ?,
+            analyzed_at = CURRENT_TIMESTAMP, analysis_status = 'done' WHERE id = ?
+        `).run(
+          analysis.summary,
+          JSON.stringify(analysis.keyPoints || []),
+          JSON.stringify(analysis.tickers),
+          JSON.stringify(analysis.trade_signals),
+          video.id
+        );
+        reanalyzed++;
+      } catch (err) {
+        console.error(`Error reanalyzing video ${video.youtube_id}:`, err.message);
+        db.prepare("UPDATE videos SET analysis_status = 'failed' WHERE id = ?").run(video.id);
+        failed++;
+      }
+    }
+
+    db.prepare('INSERT INTO action_log (user_id, action, target) VALUES (?, ?, ?)').run(
+      req.user.id, 'reanalyze_channel', channel.name
+    );
+    res.json({ reanalyzed, failed, total: videos.length });
+  } catch (err) {
+    console.error('POST /channels/:id/reanalyze error:', err);
+    res.status(500).json({ error: err.message || 'Failed to reanalyze channel' });
+  }
+});
+
 // POST /api/channels/:id/refresh — manually refresh a channel
 router.post('/:id/refresh', requireAdmin, async (req, res) => {
   try {

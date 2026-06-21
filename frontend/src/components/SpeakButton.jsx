@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import Tooltip from './Tooltip.jsx';
 
 export function useSpeech() {
   const [speakingId, setSpeakingId] = useState(null);
@@ -23,7 +24,7 @@ export function useSpeech() {
 
 function PlayIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
       <polygon points="5,3 19,12 5,21" />
     </svg>
   );
@@ -31,7 +32,7 @@ function PlayIcon() {
 
 function StopIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
       <rect x="4" y="4" width="16" height="16" rx="2" />
     </svg>
   );
@@ -41,17 +42,18 @@ export function SpeakButton({ id, text, speakingId, onSpeak }) {
   if (!text || typeof window === 'undefined' || !window.speechSynthesis) return null;
   const active = speakingId === id;
   return (
-    <button
-      onClick={() => onSpeak(id, text)}
-      title={active ? 'Stop' : 'Read aloud'}
-      className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${
-        active
-          ? 'bg-violet-600/30 border-violet-500 text-violet-300 hover:bg-violet-600/50'
-          : 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-zinc-200 hover:border-zinc-400'
-      }`}
-    >
-      {active ? <StopIcon /> : <PlayIcon />}
-      {active ? 'Stop' : 'Play'}
-    </button>
+    <Tooltip label={active ? 'Stop reading aloud' : 'Read summary aloud'}>
+      <button
+        onClick={() => onSpeak(id, text)}
+        className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+          active
+            ? 'bg-violet-600/40 border-violet-500 text-violet-200 hover:bg-violet-600/60'
+            : 'bg-zinc-700 border-zinc-500 text-zinc-200 hover:bg-zinc-600 hover:border-zinc-400'
+        }`}
+      >
+        {active ? <StopIcon /> : <PlayIcon />}
+        {active ? 'Stop' : 'Play'}
+      </button>
+    </Tooltip>
   );
 }
