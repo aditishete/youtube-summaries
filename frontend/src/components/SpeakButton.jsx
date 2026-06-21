@@ -38,11 +38,11 @@ function StopIcon() {
   );
 }
 
-export function SpeakButton({ id, text, speakingId, onSpeak }) {
+export function SpeakButton({ id, text, speakingId, onSpeak, tooltipPosition = 'top' }) {
   if (!text || typeof window === 'undefined' || !window.speechSynthesis) return null;
   const active = speakingId === id;
   return (
-    <Tooltip label={active ? 'Stop reading aloud' : 'Read summary aloud'}>
+    <Tooltip label={active ? 'Stop reading aloud' : 'Read summary aloud'} position={tooltipPosition}>
       <button
         onClick={() => onSpeak(id, text)}
         className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors ${

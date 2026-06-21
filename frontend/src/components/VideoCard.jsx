@@ -142,7 +142,31 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
         </div>
 
         {/* ── Column 2: Summary (+ key points for market) ── */}
-        <div className="md:flex-[2] p-3 md:p-4 flex flex-col justify-between gap-2 border-t md:border-t-0 md:border-r border-zinc-700">
+        <div className="md:flex-[2] flex flex-col justify-between border-t md:border-t-0 md:border-r border-zinc-700">
+          {/* Button toolbar — sits flush at the top with its own padding */}
+          <div className="px-3 md:px-4 pt-2 pb-1 flex items-center gap-2 border-b border-zinc-700/50">
+            {analyzed_at && !reanalyzing && summary ? (
+              <>
+                <SpeakButton id={`${id}-summary`} text={buildVideoSpeakText(data)} speakingId={speakingId} onSpeak={onSpeak} tooltipPosition="bottom" />
+                <Tooltip label="Copy a shareable link to this brief" position="bottom">
+                  <button
+                    onClick={handleShare}
+                    className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+                      copied
+                        ? 'bg-emerald-700/40 border-emerald-500 text-emerald-200'
+                        : 'bg-zinc-700 border-zinc-500 text-zinc-200 hover:bg-zinc-600 hover:border-zinc-400'
+                    }`}
+                  >
+                    {copied ? '✓ Copied' : '⤴ Share'}
+                  </button>
+                </Tooltip>
+              </>
+            ) : (
+              <div className="h-8" />
+            )}
+          </div>
+
+          <div className="flex-1 p-3 md:p-4 flex flex-col justify-between gap-2">
           <div className="flex-1">
             {!analyzed_at || reanalyzing ? (
               <div className="flex items-center gap-2">
@@ -153,21 +177,6 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
               </div>
             ) : summary ? (
               <>
-                <div className="mb-3 flex items-center gap-2">
-                  <SpeakButton id={`${id}-summary`} text={buildVideoSpeakText(data)} speakingId={speakingId} onSpeak={onSpeak} />
-                  <Tooltip label="Copy a shareable link to this brief">
-                    <button
-                      onClick={handleShare}
-                      className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors ${
-                        copied
-                          ? 'bg-emerald-700/40 border-emerald-500 text-emerald-200'
-                          : 'bg-zinc-700 border-zinc-500 text-zinc-200 hover:bg-zinc-600 hover:border-zinc-400'
-                      }`}
-                    >
-                      {copied ? '✓ Copied' : '⤴ Share'}
-                    </button>
-                  </Tooltip>
-                </div>
                 <p className="text-zinc-300 text-lg leading-relaxed">{summary}</p>
                 {category !== 'healthy' && keyPoints.length > 0 && (
                   <ul className="mt-3 space-y-2">
@@ -206,6 +215,7 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
               </Tooltip>
             </div>
           )}
+          </div>
         </div>
 
         {/* ── Column 3: Key Takeaways (health) or Recommendations (market) ── */}
@@ -233,7 +243,7 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Recommendations</span>
                 {analyzed_at && !reanalyzing && buildVideoRecsText(data) && (
-                  <SpeakButton id={`${id}-recs`} text={buildVideoRecsText(data)} speakingId={speakingId} onSpeak={onSpeak} />
+                  <SpeakButton id={`${id}-recs`} text={buildVideoRecsText(data)} speakingId={speakingId} onSpeak={onSpeak} tooltipPosition="bottom" />
                 )}
               </div>
               {!analyzed_at || reanalyzing ? (
