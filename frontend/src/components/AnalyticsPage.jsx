@@ -476,18 +476,27 @@ export default function AnalyticsPage({ onBack, onLogout }) {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">
+          <button onClick={onBack} className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 text-zinc-100 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors">
             ← Back
           </button>
-          <span className="text-zinc-700">|</span>
-          <span className="text-zinc-100 font-semibold">Analytics</span>
+          <span className="text-zinc-100 font-semibold ml-1">Analytics</span>
           <span className="text-xs bg-blue-600/30 text-blue-300 px-1.5 py-0.5 rounded font-mono">admin</span>
         </div>
-        {onLogout && (
-          <button onClick={onLogout} className="text-sm font-medium text-zinc-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-zinc-800">
-            Sign out
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <a
+            href="https://ko-fi.com/inbrief"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400/60 text-amber-300 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            ☕ Support
+          </a>
+          {onLogout && (
+            <button onClick={onLogout} className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 text-zinc-100 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors">
+              Sign out
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-6">

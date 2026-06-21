@@ -8,13 +8,21 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
         <div className="flex items-center gap-2">
           <span className="text-xl font-bold text-zinc-100">InBrief</span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-zinc-400">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-zinc-400 mr-2">
             Signed in as <span className="text-zinc-200 font-medium">{currentUser?.username}</span>
           </span>
+          <a
+            href="https://ko-fi.com/inbrief"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400/60 text-amber-300 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            ☕ Support
+          </a>
           <button
             onClick={onLogout}
-            className="text-sm font-medium text-zinc-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-zinc-800"
+            className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 text-zinc-100 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
           >
             Sign out
           </button>

@@ -374,23 +374,32 @@ export default function SummarizePage({ onBack, onLogout, isGuest, claimedShareT
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
       {/* Header */}
-      <header className="flex items-center gap-4 px-8 py-5 border-b border-zinc-800 flex-shrink-0">
+      <header className="flex items-center gap-3 px-8 py-4 border-b border-zinc-800 flex-shrink-0">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 hover:text-white transition-colors"
+          className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 text-zinc-100 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
         >
           ← Back
         </button>
-        <span className="text-zinc-700">|</span>
-        <span className="text-zinc-300 font-semibold">Video In Brief</span>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="ml-auto text-sm font-medium text-zinc-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-zinc-800"
+        <span className="text-zinc-300 font-semibold ml-1">Video In Brief</span>
+        <div className="ml-auto flex items-center gap-2">
+          <a
+            href="https://ko-fi.com/inbrief"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400/60 text-amber-300 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
           >
-            Sign out
-          </button>
-        )}
+            ☕ Support
+          </a>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 text-zinc-100 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Sign out
+            </button>
+          )}
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto">

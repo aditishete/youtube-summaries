@@ -119,18 +119,9 @@ export default function Sidebar({
       {/* Header */}
       <div className="p-4 border-b border-zinc-800">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-base font-bold text-zinc-100 tracking-tight">
+          <h1 className="text-xl font-bold text-zinc-50 tracking-tight">
             {category === 'healthy' ? 'Health Briefs' : 'Market Briefs'}
           </h1>
-          {onBack && (
-            <button
-              onClick={onBack}
-              title="Back to home"
-              className="text-zinc-300 hover:text-white text-xs font-medium px-2 py-1 rounded hover:bg-zinc-700 transition-colors"
-            >
-              ← Home
-            </button>
-          )}
         </div>
         {isAdmin && (
           <button
@@ -286,32 +277,36 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* Footer — user info + logout */}
-      <div className="p-4 border-t border-zinc-800">
+      {/* Footer — user info + sign out */}
+      <div className="p-4 border-t border-zinc-800 space-y-3">
         {currentUser && (
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-zinc-300 text-sm font-medium truncate">
-                {currentUser.username}
-              </p>
-              <span
-                className={`inline-block text-xs px-1.5 py-0.5 rounded font-mono mt-0.5 ${
-                  currentUser.role === 'admin'
-                    ? 'bg-blue-600/30 text-blue-300'
-                    : 'bg-zinc-700 text-zinc-400'
-                }`}
+          <>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-zinc-200 text-sm font-semibold truncate">
+                  {currentUser.username}
+                </p>
+                <span
+                  className={`inline-block text-xs px-1.5 py-0.5 rounded font-mono mt-0.5 ${
+                    currentUser.role === 'admin'
+                      ? 'bg-blue-600/30 text-blue-300'
+                      : 'bg-zinc-700 text-zinc-400'
+                  }`}
+                >
+                  {currentUser.role}
+                </span>
+              </div>
+              <button
+                onClick={onLogout}
+                className="flex-shrink-0 bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 text-zinc-100 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
               >
-                {currentUser.role}
-              </span>
+                Sign out
+              </button>
             </div>
-            <button
-              onClick={onLogout}
-              title="Sign out"
-              className="flex-shrink-0 text-zinc-300 hover:text-white text-xs font-medium px-2 py-1 rounded hover:bg-zinc-700 transition-colors"
-            >
-              Sign out
-            </button>
-          </div>
+            <p className="text-zinc-600 text-xs leading-snug">
+              ☕ <a href="https://ko-fi.com/inbrief" target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-400">Support via Ko-fi</a> — voluntary, not tax-deductible.
+            </p>
+          </>
         )}
       </div>
     </div>

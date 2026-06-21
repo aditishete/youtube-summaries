@@ -268,9 +268,41 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
 
   return (
     <div className="p-3 md:py-6 md:px-[5%]">
-      {/* Market tabs — US / India (market briefs only) */}
+      {/* Row 1 — Back + Ko-fi + Sign out (desktop only) */}
+      <div className="hidden md:flex items-center justify-between gap-3 mb-4">
+        <div>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 text-zinc-100 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              ← Back
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href="https://ko-fi.com/inbrief"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400/60 text-amber-300 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            ☕ Support
+          </a>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 text-zinc-100 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Sign out
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Row 2 — Market tabs (market only, desktop only) */}
       {category === 'market' && onMarketChange && (
-        <div className="flex items-center gap-2 mb-5">
+        <div className="hidden md:flex items-center gap-2 mb-4">
           <button
             onClick={() => onMarketChange('us')}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
@@ -294,70 +326,46 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
         </div>
       )}
 
-      {/* Feed Header — desktop only (mobile has its own top bar in App.jsx) */}
+      {/* Row 3 — Title + count (desktop only) */}
       <div className="hidden md:flex items-center gap-3 mb-6">
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 hover:text-white transition-colors mr-1"
-          >
-            ← Back
-          </button>
-        )}
         <h2 className="text-xl font-bold text-zinc-100">{headerTitle}</h2>
         {!loading && (
           <span className="bg-zinc-800 text-zinc-400 text-xs font-mono px-2 py-1 rounded-full border border-zinc-700">
             {displayVideos.length} video{displayVideos.length !== 1 ? 's' : ''}
           </span>
         )}
-        <div className="ml-auto flex items-center gap-2">
-          {!loading && displayVideos.length > 0 && (<>
-            <button
-              onClick={() => downloadCsv(displayVideos, `${headerTitle.replace(/\s+/g, '_')}_market_brief.csv`)}
-              className="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-            >
-              ↓ CSV
-            </button>
-            <button
-              onClick={() => downloadPdf(displayVideos, headerTitle)}
-              className="flex items-center gap-1.5 bg-red-900/60 hover:bg-red-900 border border-red-700 hover:border-red-500 text-red-300 hover:text-red-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-            >
-              ↓ PDF
-            </button>
-          </>)}
-          {onLogout && (
-            <button
-              onClick={onLogout}
-              className="text-sm font-medium text-zinc-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-zinc-800"
-            >
-              Sign out
-            </button>
-          )}
-        </div>
       </div>
 
-      {/* Mobile: video count + export row */}
+      {/* Mobile: market tabs + video count */}
+      {category === 'market' && onMarketChange && (
+        <div className="flex md:hidden items-center gap-2 mb-3">
+          <button
+            onClick={() => onMarketChange('us')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+              market === 'us'
+                ? 'bg-blue-600 border-blue-500 text-white'
+                : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500'
+            }`}
+          >
+            🇺🇸 US
+          </button>
+          <button
+            onClick={() => onMarketChange('india')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+              market === 'india'
+                ? 'bg-orange-600 border-orange-500 text-white'
+                : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500'
+            }`}
+          >
+            🇮🇳 India
+          </button>
+        </div>
+      )}
       <div className="flex md:hidden items-center gap-2 mb-3">
         {!loading && (
           <span className="bg-zinc-800 text-zinc-400 text-xs font-mono px-2 py-1 rounded-full border border-zinc-700">
             {displayVideos.length} video{displayVideos.length !== 1 ? 's' : ''}
           </span>
-        )}
-        {!loading && displayVideos.length > 0 && (
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => downloadCsv(displayVideos, `${headerTitle.replace(/\s+/g, '_')}_market_brief.csv`)}
-              className="bg-zinc-800 border border-zinc-600 text-zinc-300 text-xs font-medium px-2.5 py-1.5 rounded-lg"
-            >
-              ↓ CSV
-            </button>
-            <button
-              onClick={() => downloadPdf(displayVideos, headerTitle)}
-              className="bg-red-900/60 border border-red-700 text-red-300 text-xs font-medium px-2.5 py-1.5 rounded-lg"
-            >
-              ↓ PDF
-            </button>
-          </div>
         )}
       </div>
 
@@ -430,6 +438,24 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
                 ? 'Add a YouTube health channel from the sidebar to get started.'
                 : 'Add a YouTube channel from the sidebar to start seeing market signals.'}
           </p>
+        </div>
+      )}
+
+      {/* Export row — above video list */}
+      {!loading && displayVideos.length > 0 && (
+        <div className="flex justify-end items-center gap-2 mb-4">
+          <button
+            onClick={() => downloadCsv(displayVideos, `${headerTitle.replace(/\s+/g, '_')}_brief.csv`)}
+            className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+          >
+            ↓ CSV
+          </button>
+          <button
+            onClick={() => downloadPdf(displayVideos, headerTitle)}
+            className="bg-red-900/40 hover:bg-red-900/70 border border-red-800 hover:border-red-600 text-red-300 hover:text-red-100 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+          >
+            ↓ PDF
+          </button>
         </div>
       )}
 
