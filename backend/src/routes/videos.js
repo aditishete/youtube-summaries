@@ -32,8 +32,13 @@ router.get('/', requireAuth, (req, res) => {
         LIMIT ? OFFSET ?
       `).all(channelId, limit, offset);
     } else {
-      // All channels: top 3 analyzed videos per channel, deduped by title, filtered by category
+      // All channels: top 3 analyzed videos per channel, deduped by title, filtered by category + market
       const category = req.query.category || 'market';
+      const market = req.query.market || null;
+      const chanFilter = market
+        ? 'AND channel_id IN (SELECT id FROM channels WHERE category = ? AND market = ?)'
+        : 'AND channel_id IN (SELECT id FROM channels WHERE category = ?)';
+      const chanParams = market ? [category, market] : [category];
       rows = db.prepare(`
         SELECT v.*, c.name AS channel_name
         FROM (
@@ -44,14 +49,14 @@ router.get('/', requireAuth, (req, res) => {
               ROW_NUMBER() OVER (PARTITION BY channel_id, title ORDER BY published_at DESC) AS title_rn
             FROM videos
             WHERE analysis_status = 'done'
-              AND channel_id IN (SELECT id FROM channels WHERE category = ?)
+              ${chanFilter}
           ) deduped
           WHERE title_rn = 1
         ) v
         JOIN channels c ON c.id = v.channel_id
         WHERE v.rn <= 3
         ORDER BY v.published_at DESC
-      `).all(category);
+      `).all(chanParams);
       total = rows.length;
     }
 

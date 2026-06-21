@@ -74,6 +74,7 @@ export default function Sidebar({
   visibleCountByChannel = {},
   allChannelsVisibleCount = 0,
   category = 'market',
+  market = 'us',
 }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [refreshingId, setRefreshingId] = useState(null);
@@ -136,7 +137,17 @@ export default function Sidebar({
               : 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
           }`}
         >
-          <span className="text-sm font-medium">All Channels</span>
+          <div className="flex items-center gap-1.5">
+                <span className="text-sm font-medium">Overview</span>
+                <div className="relative group/ov">
+                  <span className="text-zinc-600 text-xs cursor-default select-none">ⓘ</span>
+                  <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 text-zinc-200 rounded whitespace-nowrap opacity-0 group-hover/ov:opacity-100 transition-opacity z-50">
+                    {category === 'healthy'
+                      ? 'Most recent briefs across all health channels'
+                      : `Most recent briefs across all ${market === 'india' ? 'India' : 'US'} channels`}
+                  </div>
+                </div>
+              </div>
           <span
             className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${
               selectedChannelId === null

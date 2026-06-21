@@ -24,23 +24,20 @@ function pruneChannelVideos(channelId) {
   `).run(channelId, channelId);
 }
 
-// GET /api/channels — list channels with video counts, filtered by category
+// GET /api/channels — list channels with video counts, filtered by category and optionally market
 router.get('/', requireAuth, (req, res) => {
   try {
     const category = req.query.category || 'market';
-    const channels = db
-      .prepare(`
-        SELECT
-          c.*,
-          COUNT(v.id) AS video_count
-        FROM channels c
-        LEFT JOIN videos v ON v.channel_id = c.id
-        WHERE c.category = ?
-        GROUP BY c.id
-        ORDER BY c.created_at DESC
-      `)
-      .all(category);
-
+    const market = req.query.market || null;
+    const params = [category];
+    let sql = `
+      SELECT c.*, COUNT(v.id) AS video_count
+      FROM channels c
+      LEFT JOIN videos v ON v.channel_id = c.id
+      WHERE c.category = ?`;
+    if (market) { sql += ' AND c.market = ?'; params.push(market); }
+    sql += ' GROUP BY c.id ORDER BY c.created_at DESC';
+    const channels = db.prepare(sql).all(params);
     res.json(channels);
   } catch (err) {
     console.error('GET /channels error:', err);
@@ -50,7 +47,7 @@ router.get('/', requireAuth, (req, res) => {
 
 // POST /api/channels — add a new channel
 router.post('/', requireAdmin, async (req, res) => {
-  const { url, category = 'market' } = req.body || {};
+  const { url, category = 'market', market = 'us' } = req.body || {};
 
   if (!url || typeof url !== 'string' || url.trim() === '') {
     return res.status(400).json({ error: 'url is required' });
@@ -80,10 +77,10 @@ router.post('/', requireAdmin, async (req, res) => {
 
     // Insert channel
     const insertChannel = db.prepare(`
-      INSERT INTO channels (youtube_id, name, rss_url, category, last_fetched_at)
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      INSERT INTO channels (youtube_id, name, rss_url, category, market, last_fetched_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
-    const channelResult = insertChannel.run(channelId, channelName, rssUrl, category);
+    const channelResult = insertChannel.run(channelId, channelName, rssUrl, category, market);
     const newChannelId = channelResult.lastInsertRowid;
 
     // Fetch the inserted channel row
@@ -124,7 +121,8 @@ router.post('/', requireAdmin, async (req, res) => {
             transcript,
             published_at: item.publishedAt,
           },
-          channelName
+          channelName,
+          category
         );
 
         db.prepare(`
@@ -289,7 +287,8 @@ router.post('/:id/refresh', requireAdmin, async (req, res) => {
             transcript,
             published_at: item.publishedAt,
           },
-          channelName
+          channelName,
+          category
         );
 
         db.prepare(`

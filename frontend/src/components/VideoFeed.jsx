@@ -244,9 +244,9 @@ function SkeletonCard() {
   );
 }
 
-export default function VideoFeed({ videos, loading, selectedChannelId, channels, onBack, onLogout, isAdmin, onDeleteVideo, targetVideoId, category = 'market' }) {
+export default function VideoFeed({ videos, loading, selectedChannelId, channels, onBack, onLogout, isAdmin, onDeleteVideo, targetVideoId, category = 'market', market = 'us', onMarketChange }) {
   const selectedChannel = channels?.find((c) => c.id === selectedChannelId);
-  const headerTitle = selectedChannel ? selectedChannel.name : 'All Channels';
+  const headerTitle = selectedChannel ? selectedChannel.name : 'Overview';
 
   const [extraCount, setExtraCount] = useState(0);
   const [disclosureOpen, setDisclosureOpen] = useState(false);
@@ -268,6 +268,32 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
 
   return (
     <div className="p-3 md:py-6 md:px-[5%]">
+      {/* Market tabs — US / India (market briefs only) */}
+      {category === 'market' && onMarketChange && (
+        <div className="flex items-center gap-2 mb-5">
+          <button
+            onClick={() => onMarketChange('us')}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+              market === 'us'
+                ? 'bg-blue-600 border-blue-500 text-white'
+                : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500'
+            }`}
+          >
+            🇺🇸 US
+          </button>
+          <button
+            onClick={() => onMarketChange('india')}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+              market === 'india'
+                ? 'bg-orange-600 border-orange-500 text-white'
+                : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500'
+            }`}
+          >
+            🇮🇳 India
+          </button>
+        </div>
+      )}
+
       {/* Feed Header — desktop only (mobile has its own top bar in App.jsx) */}
       <div className="hidden md:flex items-center gap-3 mb-6">
         {onBack && (

@@ -236,6 +236,11 @@ try {
   db.exec("ALTER TABLE channels ADD COLUMN category TEXT NOT NULL DEFAULT 'market'");
 } catch (_) {}
 
+// Add market column to channels (us | india | ...)
+try {
+  db.exec("ALTER TABLE channels ADD COLUMN market TEXT NOT NULL DEFAULT 'us'");
+} catch (_) {}
+
 // Action log — admin and user actions with timestamp
 db.exec(`
   CREATE TABLE IF NOT EXISTS action_log (

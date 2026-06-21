@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-export default function AddChannelModal({ onClose, onAdd }) {
+export default function AddChannelModal({ onClose, onAdd, market = 'us', category = 'market' }) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -63,7 +63,14 @@ export default function AddChannelModal({ onClose, onAdd }) {
       <div className="bg-zinc-800 border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-zinc-700">
-          <h2 className="text-lg font-semibold text-zinc-100">Add YouTube Channel</h2>
+          <div>
+              <h2 className="text-lg font-semibold text-zinc-100">Add YouTube Channel</h2>
+              {category === 'market' && (
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Adding to {market === 'india' ? '🇮🇳 India' : '🇺🇸 US'} Market
+                </p>
+              )}
+            </div>
           {!loading && (
             <button
               onClick={onClose}
