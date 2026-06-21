@@ -81,18 +81,18 @@ export async function getMe() {
 
 // ── Channels API ──────────────────────────────────────────────────────────────
 
-export const getChannels = async () => {
-  const res = await apiFetch(`${BASE}/channels`);
+export const getChannels = async (category = 'market') => {
+  const res = await apiFetch(`${BASE}/channels?category=${category}`);
   const data = await safeJSON(res);
   if (!res.ok) throw new Error(data.error || 'Failed to fetch channels');
   return data;
 };
 
-export const addChannel = async (url) => {
+export const addChannel = async (url, category = 'market') => {
   const res = await apiFetch(`${BASE}/channels`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, category }),
   });
   const data = await safeJSON(res);
   if (!res.ok) throw new Error(data.error || 'Failed to add channel');
@@ -117,10 +117,11 @@ export const refreshChannel = async (id) => {
 
 // ── Videos API ────────────────────────────────────────────────────────────────
 
-export const getVideos = async (channelId = null, limit = 50, offset = 0, auto = false) => {
+export const getVideos = async (channelId = null, limit = 50, offset = 0, auto = false, category = 'market') => {
   const params = new URLSearchParams({ limit, offset });
   if (channelId) params.set('channel_id', channelId);
   if (auto) params.set('auto', '1');
+  if (!channelId) params.set('category', category);
   const res = await apiFetch(`${BASE}/videos?${params}`);
   const data = await safeJSON(res);
   if (!res.ok) throw new Error(data.error || 'Failed to fetch videos');

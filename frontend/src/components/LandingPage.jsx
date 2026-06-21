@@ -28,7 +28,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
           Track investment channels and get AI-powered trade signals, or get an instant brief on any YouTube video.
         </p>
 
-        <div className={`grid grid-cols-1 gap-6 w-full max-w-3xl ${currentUser?.role === 'admin' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+        <div className={`grid grid-cols-1 gap-6 w-full max-w-4xl md:grid-cols-3`}>
           {/* Card 1 — Market Brief */}
           <button
             onClick={() => onNavigate('dashboard')}
@@ -48,7 +48,26 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
             </span>
           </button>
 
-          {/* Card 2 — Video In Brief */}
+          {/* Card 2 — Healthy Brief */}
+          <button
+            onClick={() => onNavigate('healthy')}
+            className="group text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-teal-500 rounded-2xl p-8 transition-all duration-200 shadow-lg hover:shadow-teal-900/20"
+          >
+            <div className="text-4xl mb-5">🌿</div>
+            <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-teal-400 transition-colors">
+              Healthy Brief
+            </h2>
+            <ul className="text-zinc-500 text-xs space-y-1.5 mb-6">
+              <li className="flex items-center gap-2"><span className="text-teal-500">•</span> AI summaries from health & wellness channels</li>
+              <li className="flex items-center gap-2"><span className="text-teal-500">•</span> Key insights and actionable takeaways</li>
+              <li className="flex items-center gap-2"><span className="text-teal-500">•</span> Export to CSV or PDF</li>
+            </ul>
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-400 group-hover:gap-2.5 transition-all">
+              Open feed <span>→</span>
+            </span>
+          </button>
+
+          {/* Card 3 — Video In Brief */}
           <button
             onClick={() => onNavigate('summarize')}
             className="group text-left bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-violet-500 rounded-2xl p-8 transition-all duration-200 shadow-lg hover:shadow-violet-900/20"
@@ -67,7 +86,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
             </span>
           </button>
 
-          {/* Card 3 — Analytics (admin only) */}
+          {/* Card 4 — Analytics (admin only) */}
           {currentUser?.role === 'admin' && (
             <button
               onClick={() => onNavigate('analytics')}

@@ -28,6 +28,7 @@ export default function App() {
   const [targetVideoId, setTargetVideoId] = useState(null);
 
   // ── Dashboard state ─────────────────────────────────────────────────────────
+  const [category, setCategory] = useState('market');
   const [channels, setChannels] = useState([]);
   const [selectedChannelId, setSelectedChannelId] = useState(null);
   const [videos, setVideos] = useState([]);
@@ -145,7 +146,7 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('appPage', appPage);
     if (authStatus === 'authenticated') {
-      const pageMap = { landing: 'landing', dashboard: 'market_brief', summarize: 'video_in_brief' };
+      const pageMap = { landing: 'landing', dashboard: 'market_brief', healthy: 'healthy_brief', summarize: 'video_in_brief' };
       if (pageMap[appPage]) trackPageView(pageMap[appPage]);
     }
   }, [appPage, authStatus]);
@@ -196,20 +197,20 @@ export default function App() {
   }, []);
 
   // ── Dashboard data loading ───────────────────────────────────────────────────
-  const loadChannels = useCallback(async () => {
+  const loadChannels = useCallback(async (cat) => {
     try {
-      const data = await getChannels();
+      const data = await getChannels(cat);
       setChannels(data);
     } catch (err) {
       console.error('Failed to load channels:', err);
     }
   }, []);
 
-  const loadVideos = useCallback(async (channelId = null, auto = false) => {
+  const loadVideos = useCallback(async (channelId = null, auto = false, cat = 'market') => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getVideos(channelId, 50, 0, auto);
+      const data = await getVideos(channelId, 50, 0, auto, cat);
       setVideos(data.videos || []);
     } catch (err) {
       console.error('Failed to load videos:', err);
@@ -219,37 +220,44 @@ export default function App() {
     }
   }, []);
 
-  // Load data once authenticated
+  // Load data once authenticated or when category changes
   useEffect(() => {
     if (authStatus === 'authenticated') {
-      loadChannels();
-      loadVideos(null);
+      loadChannels(category);
+      loadVideos(null, false, category);
     }
-  }, [authStatus, loadChannels, loadVideos]);
+  }, [authStatus, loadChannels, loadVideos, category]);
 
   // Reload videos when selected channel changes
   useEffect(() => {
     if (authStatus === 'authenticated') {
-      loadVideos(selectedChannelId);
+      loadVideos(selectedChannelId, false, category);
     }
-  }, [selectedChannelId, loadVideos, authStatus]);
+  }, [selectedChannelId, loadVideos, authStatus, category]);
 
-  // Auto-refresh every 15 minutes while on the dashboard (auto=true skips request tracking)
+  // Auto-refresh every 15 minutes while on a feed page (auto=true skips request tracking)
   useEffect(() => {
-    if (authStatus !== 'authenticated' || appPage !== 'dashboard') return;
+    if (authStatus !== 'authenticated' || (appPage !== 'dashboard' && appPage !== 'healthy')) return;
     const id = setInterval(() => {
-      loadChannels();
-      loadVideos(selectedChannelId, true);
+      loadChannels(category);
+      loadVideos(selectedChannelId, true, category);
     }, 15 * 60 * 1000);
     return () => clearInterval(id);
-  }, [authStatus, appPage, selectedChannelId, loadChannels, loadVideos]);
+  }, [authStatus, appPage, selectedChannelId, loadChannels, loadVideos, category]);
+
+  // Navigate to a feed page — resets channel selection and sets category
+  const handleNavigate = useCallback((page) => {
+    if (page === 'dashboard') { setCategory('market'); setSelectedChannelId(null); }
+    else if (page === 'healthy') { setCategory('healthy'); setSelectedChannelId(null); }
+    setAppPage(page);
+  }, []);
 
   const handleChannelAdded = useCallback(async (url) => {
-    const result = await addChannel(url);
-    await loadChannels();
-    await loadVideos(selectedChannelId);
+    const result = await addChannel(url, category);
+    await loadChannels(category);
+    await loadVideos(selectedChannelId, false, category);
     return result;
-  }, [loadChannels, loadVideos, selectedChannelId]);
+  }, [loadChannels, loadVideos, selectedChannelId, category]);
 
   const handleChannelDeleted = useCallback(async (id) => {
     try {
@@ -257,41 +265,41 @@ export default function App() {
       if (selectedChannelId === id) {
         setSelectedChannelId(null);
       }
-      await loadChannels();
-      await loadVideos(selectedChannelId === id ? null : selectedChannelId);
+      await loadChannels(category);
+      await loadVideos(selectedChannelId === id ? null : selectedChannelId, false, category);
     } catch (err) {
       console.error('Failed to delete channel:', err);
     }
-  }, [loadChannels, loadVideos, selectedChannelId]);
+  }, [loadChannels, loadVideos, selectedChannelId, category]);
 
   const handleToggleSubscription = useCallback(async (id, subscribed) => {
     try {
       await setChannelSubscription(id, subscribed);
-      await loadChannels();
+      await loadChannels(category);
     } catch (err) {
       console.error('Failed to update subscription:', err);
     }
-  }, [loadChannels]);
+  }, [loadChannels, category]);
 
   const handleDeleteVideo = useCallback(async (id) => {
     try {
       await deleteVideo(id);
-      await loadVideos(selectedChannelId);
-      await loadChannels();
+      await loadVideos(selectedChannelId, false, category);
+      await loadChannels(category);
     } catch (err) {
       console.error('Failed to delete video:', err);
     }
-  }, [loadVideos, loadChannels, selectedChannelId]);
+  }, [loadVideos, loadChannels, selectedChannelId, category]);
 
   const handleRefreshChannel = useCallback(async (id) => {
     try {
       await refreshChannel(id);
-      await loadChannels();
-      await loadVideos(selectedChannelId);
+      await loadChannels(category);
+      await loadVideos(selectedChannelId, false, category);
     } catch (err) {
       console.error('Failed to refresh channel:', err);
     }
-  }, [loadChannels, loadVideos, selectedChannelId]);
+  }, [loadChannels, loadVideos, selectedChannelId, category]);
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -334,7 +342,7 @@ export default function App() {
     return (
       <LandingPage
         currentUser={currentUser}
-        onNavigate={setAppPage}
+        onNavigate={handleNavigate}
         onLogout={handleLogout}
       />
     );
@@ -348,7 +356,7 @@ export default function App() {
     return <AnalyticsPage onBack={() => setAppPage('landing')} onLogout={handleLogout} />;
   }
 
-  // appPage === 'dashboard'
+  // appPage === 'dashboard' or 'healthy'
   // Sidebar counts: per-channel shows total in DB; "All Channels" shows sum of min(3, count)
   const visibleCountByChannel = {};
   let allChannelsVisibleCount = 0;
@@ -375,6 +383,7 @@ export default function App() {
           onBack={() => setAppPage('landing')}
           visibleCountByChannel={visibleCountByChannel}
           allChannelsVisibleCount={allChannelsVisibleCount}
+          category={category}
         />
       </div>
 
@@ -395,6 +404,7 @@ export default function App() {
               currentUser={currentUser}
               onLogout={handleLogout}
               onBack={() => setAppPage('landing')}
+              category={category}
             />
           </div>
         </div>
@@ -441,6 +451,7 @@ export default function App() {
             isGuest={currentUser?.guestMode === true}
             onDeleteVideo={handleDeleteVideo}
             targetVideoId={targetVideoId}
+            category={category}
           />
         )}
       </main>

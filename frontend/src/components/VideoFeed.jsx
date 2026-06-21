@@ -244,7 +244,7 @@ function SkeletonCard() {
   );
 }
 
-export default function VideoFeed({ videos, loading, selectedChannelId, channels, onBack, onLogout, isAdmin, onDeleteVideo, targetVideoId }) {
+export default function VideoFeed({ videos, loading, selectedChannelId, channels, onBack, onLogout, isAdmin, onDeleteVideo, targetVideoId, category = 'market' }) {
   const selectedChannel = channels?.find((c) => c.id === selectedChannelId);
   const headerTitle = selectedChannel ? selectedChannel.name : 'All Channels';
 
@@ -371,15 +371,17 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between bg-amber-400/10 border border-amber-400/50 rounded-lg px-4 py-3 mb-5">
-        <span className="text-amber-300 font-semibold text-sm">Disclosures: Why Finfluencer Advice can be Risky</span>
-        <button
-          onClick={() => setDisclosureOpen(true)}
-          className="text-amber-400 text-sm underline hover:text-amber-300 ml-4 flex-shrink-0"
-        >
-          Read Disclosures
-        </button>
-      </div>
+      {category === 'market' && (
+        <div className="flex items-center justify-between bg-amber-400/10 border border-amber-400/50 rounded-lg px-4 py-3 mb-5">
+          <span className="text-amber-300 font-semibold text-sm">Disclosures: Why Finfluencer Advice can be Risky</span>
+          <button
+            onClick={() => setDisclosureOpen(true)}
+            className="text-amber-400 text-sm underline hover:text-amber-300 ml-4 flex-shrink-0"
+          >
+            Read Disclosures
+          </button>
+        </div>
+      )}
 
       {/* Loading skeleton */}
       {loading && (
@@ -398,7 +400,9 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
           <p className="text-zinc-500 text-sm max-w-xs">
             {selectedChannelId
               ? 'This channel has no videos. Try refreshing it.'
-              : 'Add a YouTube channel from the sidebar to start seeing market signals.'}
+              : category === 'healthy'
+                ? 'Add a YouTube health channel from the sidebar to get started.'
+                : 'Add a YouTube channel from the sidebar to start seeing market signals.'}
           </p>
         </div>
       )}

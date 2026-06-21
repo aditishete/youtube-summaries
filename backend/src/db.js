@@ -231,6 +231,11 @@ try {
   db.exec('ALTER TABLE channels ADD COLUMN subscribed INTEGER NOT NULL DEFAULT 1');
 } catch (_) { /* column already exists — safe to ignore */ }
 
+// Add category column to channels (market | healthy | ...)
+try {
+  db.exec("ALTER TABLE channels ADD COLUMN category TEXT NOT NULL DEFAULT 'market'");
+} catch (_) {}
+
 // Action log — admin and user actions with timestamp
 db.exec(`
   CREATE TABLE IF NOT EXISTS action_log (
