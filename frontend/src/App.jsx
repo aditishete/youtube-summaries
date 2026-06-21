@@ -28,7 +28,8 @@ export default function App() {
   const [targetVideoId, setTargetVideoId] = useState(null);
 
   // ── Dashboard state ─────────────────────────────────────────────────────────
-  const [category, setCategory] = useState('market');
+  // Derived from appPage — always in sync, survives refresh
+  const category = appPage === 'healthy' ? 'healthy' : 'market';
   const [channels, setChannels] = useState([]);
   const [selectedChannelId, setSelectedChannelId] = useState(null);
   const [videos, setVideos] = useState([]);
@@ -245,10 +246,9 @@ export default function App() {
     return () => clearInterval(id);
   }, [authStatus, appPage, selectedChannelId, loadChannels, loadVideos, category]);
 
-  // Navigate to a feed page — resets channel selection and sets category
+  // Navigate to a feed page — category is derived from appPage automatically
   const handleNavigate = useCallback((page) => {
-    if (page === 'dashboard') { setCategory('market'); setSelectedChannelId(null); }
-    else if (page === 'healthy') { setCategory('healthy'); setSelectedChannelId(null); }
+    setSelectedChannelId(null);
     setAppPage(page);
   }, []);
 

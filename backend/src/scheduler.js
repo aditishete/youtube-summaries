@@ -30,7 +30,7 @@ function marketBriefLog(phase, error, context = {}) {
 }
 
 // ── Analysis helpers ──────────────────────────────────────────────────────────
-async function runAnalysis(video, channelName, context) {
+async function runAnalysis(video, channelName, context, category = 'market') {
   const transcript = await fetchTranscript(video.youtube_id ?? video.videoId);
   if (!transcript) {
     marketBriefLog('transcript', 'Transcript unavailable — falling back to description', context);
@@ -38,7 +38,8 @@ async function runAnalysis(video, channelName, context) {
 
   const analysis = await analyzeVideo(
     { title: video.title, description: video.description, transcript, published_at: video.publishedAt ?? video.published_at },
-    channelName
+    channelName,
+    category
   );
 
   return analysis;
@@ -58,7 +59,7 @@ function markFailed(videoId) {
 // ── Startup catch-up: today's pending videos only, attempted once ─────────────
 async function catchUpPendingToday() {
   const videos = db.prepare(`
-    SELECT v.*, c.name AS channel_name, c.id AS channel_id
+    SELECT v.*, c.name AS channel_name, c.id AS channel_id, c.category AS channel_category
     FROM videos v
     JOIN channels c ON c.id = v.channel_id
     WHERE v.analysis_status = 'pending'
@@ -71,7 +72,7 @@ async function catchUpPendingToday() {
   for (const video of videos) {
     const context = { channelId: video.channel_id, channelName: video.channel_name, videoId: video.youtube_id, videoTitle: video.title };
     try {
-      const analysis = await runAnalysis(video, video.channel_name, context);
+      const analysis = await runAnalysis(video, video.channel_name, context, video.channel_category || 'market');
       markDone(video.id, analysis);
       console.log(`[Scheduler] Caught up: ${video.title}`);
     } catch (err) {
@@ -83,7 +84,7 @@ async function catchUpPendingToday() {
 
 // ── Regular poll ──────────────────────────────────────────────────────────────
 async function pollChannels(limit = 10) {
-  const channels = db.prepare('SELECT * FROM channels WHERE subscribed = 1').all();
+  const channels = db.prepare('SELECT *, category FROM channels WHERE subscribed = 1').all();
   console.log(`[Scheduler] Polling ${channels.length} channel(s)...`);
 
   for (const channel of channels) {
@@ -109,7 +110,7 @@ async function pollChannels(limit = 10) {
         const context = { ...channelContext, videoId: item.videoId, videoTitle: item.title };
 
         try {
-          const analysis = await runAnalysis(item, channelName, context);
+          const analysis = await runAnalysis(item, channelName, context, channel.category || 'market');
           markDone(videoDbId, analysis);
         } catch (err) {
           marketBriefLog(err.phase || 'unexpected', err.message, context);

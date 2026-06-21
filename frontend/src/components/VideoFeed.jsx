@@ -411,7 +411,7 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
       {!loading && displayVideos.length > 0 && (
         <div className="space-y-4">
           {displayVideos.map((video) => (
-            <VideoCard key={video.id} video={video} speakingId={speakingId} onSpeak={speak} isAdmin={isAdmin} onDelete={onDeleteVideo} isHighlighted={video.id === targetVideoId} />
+            <VideoCard key={video.id} video={video} speakingId={speakingId} onSpeak={speak} isAdmin={isAdmin} onDelete={onDeleteVideo} isHighlighted={video.id === targetVideoId} category={category} />
           ))}
         </div>
       )}

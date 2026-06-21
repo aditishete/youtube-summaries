@@ -36,7 +36,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
           >
             <div className="text-4xl mb-5">📈</div>
             <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-blue-400 transition-colors">
-              Market Brief
+              Market Briefs
             </h2>
             <ul className="text-zinc-500 text-xs space-y-1.5 mb-6">
               <li className="flex items-center gap-2"><span className="text-blue-500">•</span> AI summaries and BUY / SELL / WATCH signals</li>
@@ -55,7 +55,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
           >
             <div className="text-4xl mb-5">🌿</div>
             <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-teal-400 transition-colors">
-              Healthy Brief
+              Health Briefs
             </h2>
             <ul className="text-zinc-500 text-xs space-y-1.5 mb-6">
               <li className="flex items-center gap-2"><span className="text-teal-500">•</span> AI summaries from health & wellness channels</li>
@@ -74,7 +74,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
           >
             <div className="text-4xl mb-5">▶️</div>
             <h2 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-violet-400 transition-colors">
-              Video In Brief
+              Video Briefs
             </h2>
             <ul className="text-zinc-500 text-xs space-y-1.5 mb-6">
               <li className="flex items-center gap-2"><span className="text-violet-500">•</span> Instant summary and trade signal extraction</li>
@@ -82,7 +82,7 @@ export default function LandingPage({ currentUser, onNavigate, onLogout }) {
               <li className="flex items-center gap-2"><span className="text-violet-500">•</span> Past briefs saved for quick reference</li>
             </ul>
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-400 group-hover:gap-2.5 transition-all">
-              Get a video brief <span>→</span>
+              Open briefs <span>→</span>
             </span>
           </button>
 

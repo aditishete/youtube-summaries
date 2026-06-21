@@ -35,7 +35,7 @@ function buildVideoRecsText(data) {
   return parts.join('. ');
 }
 
-export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSpeak, isAdmin, isHighlighted }) {
+export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSpeak, isAdmin, isHighlighted, category = 'market' }) {
   const [imgError, setImgError] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -140,7 +140,7 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
           </div>
         </div>
 
-        {/* ── Column 2: Summary ── */}
+        {/* ── Column 2: Summary (+ key points for market) ── */}
         <div className="md:flex-[2] p-3 md:p-4 flex flex-col justify-between gap-2 border-t md:border-t-0 md:border-r border-zinc-700">
           <div className="flex-1">
             {!analyzed_at || reanalyzing ? (
@@ -157,13 +157,13 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
                   <button
                     onClick={handleShare}
                     className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-zinc-200 hover:border-zinc-400 transition-colors"
-                    title="Copy link to this market brief"
+                    title="Copy link to this brief"
                   >
                     {copied ? '✓ Copied' : 'Share'}
                   </button>
                 </div>
                 <p className="text-zinc-300 text-lg leading-relaxed">{summary}</p>
-                {keyPoints.length > 0 && (
+                {category !== 'healthy' && keyPoints.length > 0 && (
                   <ul className="mt-3 space-y-2">
                     {keyPoints.map((pt, i) => (
                       <li key={i} className="flex gap-2 text-zinc-400">
@@ -200,46 +200,68 @@ export default function VideoCard({ video, onUpdated, onDelete, speakingId, onSp
           )}
         </div>
 
-        {/* ── Column 3: Recommendations ── */}
+        {/* ── Column 3: Key Takeaways (health) or Recommendations (market) ── */}
         <div className="md:flex-[1.5] p-3 md:p-4 flex flex-col gap-2 border-t md:border-t-0 border-zinc-700">
-          <div className="flex items-center gap-3">
-            <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Recommendations</span>
-            {analyzed_at && !reanalyzing && buildVideoRecsText(data) && (
-              <SpeakButton id={`${id}-recs`} text={buildVideoRecsText(data)} speakingId={speakingId} onSpeak={onSpeak} />
-            )}
-          </div>
-          {!analyzed_at || reanalyzing ? (
-            <div className="h-3.5 w-3.5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin mt-1" />
-          ) : signalList.length > 0 ? (
-            <div className="flex flex-col gap-2.5">
-              {signalList.map((s, i) => (
-                <div key={`${s.ticker}-${i}`} className="flex flex-col gap-0.5">
-                  <SignalBadge signal={s} />
-                  {s.reasoning && (
-                    <span className="text-zinc-400 text-base leading-snug pl-0.5">{s.reasoning}</span>
+          {category === 'healthy' ? (
+            <>
+              <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Key Takeaways</span>
+              {!analyzed_at || reanalyzing ? (
+                <div className="h-3.5 w-3.5 rounded-full border-2 border-teal-400 border-t-transparent animate-spin mt-1" />
+              ) : keyPoints.length > 0 ? (
+                <ul className="space-y-2">
+                  {keyPoints.map((pt, i) => (
+                    <li key={i} className="flex gap-2 text-zinc-400">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-900/60 text-teal-400 text-xs flex items-center justify-center font-medium mt-0.5">{i + 1}</span>
+                      <span className="text-base">{pt}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-zinc-600 text-xs italic">—</span>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wide">Recommendations</span>
+                {analyzed_at && !reanalyzing && buildVideoRecsText(data) && (
+                  <SpeakButton id={`${id}-recs`} text={buildVideoRecsText(data)} speakingId={speakingId} onSpeak={onSpeak} />
+                )}
+              </div>
+              {!analyzed_at || reanalyzing ? (
+                <div className="h-3.5 w-3.5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin mt-1" />
+              ) : signalList.length > 0 ? (
+                <div className="flex flex-col gap-2.5">
+                  {signalList.map((s, i) => (
+                    <div key={`${s.ticker}-${i}`} className="flex flex-col gap-0.5">
+                      <SignalBadge signal={s} />
+                      {s.reasoning && (
+                        <span className="text-zinc-400 text-base leading-snug pl-0.5">{s.reasoning}</span>
+                      )}
+                    </div>
+                  ))}
+                  {mentionOnly.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1.5 border-t border-zinc-700">
+                      {mentionOnly.map((t) => (
+                        <a key={t} href={`https://www.tradingview.com/symbols/${t}`} target="_blank" rel="noopener noreferrer" className="bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600 transition-colors">
+                          {t}
+                        </a>
+                      ))}
+                    </div>
                   )}
                 </div>
-              ))}
-              {mentionOnly.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-1.5 border-t border-zinc-700">
-                  {mentionOnly.map((t) => (
+              ) : tickerList.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {tickerList.map((t) => (
                     <a key={t} href={`https://www.tradingview.com/symbols/${t}`} target="_blank" rel="noopener noreferrer" className="bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600 transition-colors">
                       {t}
                     </a>
                   ))}
                 </div>
+              ) : (
+                <span className="text-zinc-600 text-xs italic">—</span>
               )}
-            </div>
-          ) : tickerList.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {tickerList.map((t) => (
-                <a key={t} href={`https://www.tradingview.com/symbols/${t}`} target="_blank" rel="noopener noreferrer" className="bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs px-1.5 py-0.5 rounded font-mono border border-zinc-600 transition-colors">
-                  {t}
-                </a>
-              ))}
-            </div>
-          ) : (
-            <span className="text-zinc-600 text-xs italic">—</span>
+            </>
           )}
         </div>
 

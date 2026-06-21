@@ -9,12 +9,35 @@ const MARKET_BRIEF_AI_TIMEOUT_MS = parseInt(process.env.MARKET_BRIEF_AI_TIMEOUT_
  * Returns { summary, keyPoints, tickers, trade_signals } on success.
  * Throws an Error with a `phase` property ('ai', 'timeout', 'parse') on failure.
  */
-export async function analyzeVideo(video, channelName) {
+export async function analyzeVideo(video, channelName, category = 'market') {
   const content = video.transcript?.trim()
     ? `Transcript:\n${video.transcript.slice(0, 24000)}`
     : `Description:\n${video.description || '(none)'}`;
 
-  const userPrompt = `Summarize this YouTube video for an investor audience.
+  const isHealth = category === 'healthy';
+
+  const userPrompt = isHealth
+    ? `Summarize this YouTube health and wellness video.
+
+Title: ${video.title}
+Channel: ${channelName}
+${content}
+
+Respond with ONLY a JSON object, no markdown fences:
+{
+  "summary": "3-5 sentence plain-English summary of the main health topic and key advice",
+  "keyPoints": ["Actionable takeaway 1", "Actionable takeaway 2"],
+  "tickers": [],
+  "trade_signals": []
+}
+
+Rules:
+- summary: plain English, concise; cover the core health topic, key findings, or advice the speaker shares
+- keyPoints: 5-8 most useful and actionable health or wellness takeaways from the video (specific habits, foods, exercises, dosages, studies cited, warnings, etc.)
+- tickers: always an empty array
+- trade_signals: always an empty array
+- summary is always required — write one even if the video is brief`
+    : `Summarize this YouTube video for an investor audience.
 
 Title: ${video.title}
 Channel: ${channelName}
@@ -43,6 +66,10 @@ Rules:
 - Only emit a signal when the speaker makes a real directional commitment, not just a mention
 - summary is always required — write one even if no stocks are discussed`;
 
+  const systemPrompt = isHealth
+    ? 'You are a health and wellness AI that summarizes YouTube health videos. Be concise, accurate, and focus on actionable takeaways. Always produce a summary.'
+    : 'You are a financial analyst AI that summarizes YouTube investment videos. Be concise and precise. Always produce a summary.';
+
   let response;
   try {
     response = await client.messages.create({
@@ -51,7 +78,7 @@ Rules:
       system: [
         {
           type: 'text',
-          text: 'You are a financial analyst AI that summarizes YouTube investment videos. Be concise and precise. Always produce a summary.',
+          text: systemPrompt,
           cache_control: { type: 'ephemeral' },
         },
       ],
