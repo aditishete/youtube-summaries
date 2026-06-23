@@ -43,7 +43,7 @@ function GroupCard({ label, color, today, week, month }) {
 
 function Th({ children, right }) {
   return (
-    <th className={`px-5 py-4 text-base font-semibold text-zinc-300 uppercase tracking-wide whitespace-nowrap ${right ? 'text-right' : 'text-left'}`}>
+    <th className={`px-6 py-5 text-xl font-semibold text-zinc-200 uppercase tracking-wide whitespace-nowrap ${right ? 'text-right' : 'text-left'}`}>
       {children}
     </th>
   );
@@ -51,7 +51,7 @@ function Th({ children, right }) {
 
 function Td({ children, right, muted }) {
   return (
-    <td className={`px-5 py-4 text-lg whitespace-nowrap ${right ? 'text-right' : ''} ${muted ? 'text-zinc-400' : 'text-zinc-100'}`}>
+    <td className={`px-6 py-5 text-2xl whitespace-nowrap ${right ? 'text-right' : ''} ${muted ? 'text-zinc-400' : 'text-zinc-100'}`}>
       {children}
     </td>
   );
@@ -229,7 +229,7 @@ function VideoBriefErrors({ period, onPeriodChange }) {
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
                     {data.rateLimitByUser.map((r, i) => (
-                      <tr key={i} className="hover:bg-zinc-800/40 transition-colors">
+                      <tr key={i} className="even:bg-zinc-800/40 hover:bg-zinc-700/50 transition-colors">
                         <Td><span className="font-medium text-zinc-100">{r.username}</span></Td>
                         <Td muted>{r.role}</Td>
                         <Td right><span className="font-bold text-red-400">{r.hits}</span></Td>
@@ -264,7 +264,7 @@ function VideoBriefErrors({ period, onPeriodChange }) {
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
                       {data.errors.map(e => (
-                        <tr key={e.id} className="hover:bg-zinc-800/40 transition-colors">
+                        <tr key={e.id} className="even:bg-zinc-800/40 hover:bg-zinc-700/50 transition-colors">
                           <Td><span className="font-medium text-zinc-100">{e.username}</span></Td>
                           <Td>
                             <a href={e.url} target="_blank" rel="noopener noreferrer"
@@ -347,7 +347,7 @@ function MarketBriefErrors({ period, onPeriodChange }) {
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
                     {data.channelErrors.map((r, i) => (
-                      <tr key={i} className="hover:bg-zinc-800/40 transition-colors">
+                      <tr key={i} className="even:bg-zinc-800/40 hover:bg-zinc-700/50 transition-colors">
                         <Td><span className="font-medium text-zinc-100">{r.channel_name}</span></Td>
                         <Td right><span className="font-bold text-red-400">{r.failures}</span></Td>
                         <Td muted><span className="text-xs">{r.last_error}</span></Td>
@@ -382,7 +382,7 @@ function MarketBriefErrors({ period, onPeriodChange }) {
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
                       {data.errors.map(e => (
-                        <tr key={e.id} className="hover:bg-zinc-800/40 transition-colors">
+                        <tr key={e.id} className="even:bg-zinc-800/40 hover:bg-zinc-700/50 transition-colors">
                           <Td><span className="font-medium text-zinc-100">{e.channel_name}</span></Td>
                           <Td>
                             <a href={e.video_url} target="_blank" rel="noopener noreferrer"
@@ -593,17 +593,17 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                         </tr>
                         <tr>
                           <td colSpan={2} />
-                          <td colSpan={3} className="px-5 pb-2 text-sm text-amber-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Logins ───────────</td>
-                          <td colSpan={3} className="px-5 pb-2 text-sm text-blue-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Landing Visits ───</td>
-                          <td colSpan={3} className="px-5 pb-2 text-sm text-violet-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Market Brief ─────</td>
-                          <td colSpan={3} className="px-5 pb-2 text-sm text-teal-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Health Brief ─────</td>
-                          <td colSpan={3} className="px-5 pb-2 text-sm text-emerald-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Brief Visits</td>
-                          <td colSpan={3} className="px-5 pb-2 text-sm text-zinc-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Briefs Requested</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-amber-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Logins ───────────</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-blue-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Landing Visits ───</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-violet-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Market Brief ─────</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-teal-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Health Brief ─────</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-emerald-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Brief Visits</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-zinc-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Briefs Requested</td>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-800">
                         {data.users.map((u, i) => (
-                          <tr key={u.id} className="hover:bg-zinc-800/40 transition-colors">
+                          <tr key={u.id} className="even:bg-zinc-800/40 hover:bg-zinc-700/50 transition-colors">
                             <Td muted>{i + 1}</Td>
                             <Td>
                               <div className="flex items-center gap-2">
@@ -642,7 +642,7 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                         {(actionLog || []).map(row => {
                           const meta = ACTION_LABELS[row.action] || { label: row.action, color: 'text-zinc-400' };
                           return (
-                            <tr key={row.id} className="hover:bg-zinc-800/40 transition-colors">
+                            <tr key={row.id} className="even:bg-zinc-800/40 hover:bg-zinc-700/50 transition-colors">
                               <Td muted>{new Date(row.created_at).toLocaleString()}</Td>
                               <Td>
                                 <span className="font-medium text-zinc-100">{row.username}</span>
