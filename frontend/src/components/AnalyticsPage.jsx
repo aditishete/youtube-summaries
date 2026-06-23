@@ -9,10 +9,10 @@ import {
 
 function StatCard({ label, value, sub }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-      <p className="text-zinc-500 text-xs font-medium uppercase tracking-wide mb-1">{label}</p>
-      <p className="text-3xl font-bold text-zinc-100">{value ?? '—'}</p>
-      {sub && <p className="text-zinc-500 text-xs mt-1">{sub}</p>}
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+      <p className="text-zinc-500 text-sm font-medium uppercase tracking-wide mb-2">{label}</p>
+      <p className="text-4xl font-bold text-zinc-100">{value ?? '—'}</p>
+      {sub && <p className="text-zinc-500 text-sm mt-1.5">{sub}</p>}
     </div>
   );
 }
@@ -27,13 +27,13 @@ function GroupCard({ label, color, today, week, month }) {
   };
   const { border, heading, val } = colors[color] || colors.blue;
   return (
-    <div className={`bg-zinc-900 border ${border} rounded-xl p-5`}>
-      <p className={`text-xs font-semibold uppercase tracking-wide mb-4 ${heading}`}>{label}</p>
+    <div className={`bg-zinc-900 border ${border} rounded-xl p-6`}>
+      <p className={`text-sm font-semibold uppercase tracking-wide mb-5 ${heading}`}>{label}</p>
       <div className="grid grid-cols-3 gap-3 text-center">
         {[['Today', today], ['This Week', week], ['This Month', month]].map(([period, n]) => (
           <div key={period}>
-            <p className={`text-2xl font-bold ${val}`}>{n ?? '—'}</p>
-            <p className="text-zinc-500 text-xs mt-0.5">{period}</p>
+            <p className={`text-3xl font-bold ${val}`}>{n ?? '—'}</p>
+            <p className="text-zinc-500 text-sm mt-1">{period}</p>
           </div>
         ))}
       </div>
@@ -43,7 +43,7 @@ function GroupCard({ label, color, today, week, month }) {
 
 function Th({ children, right }) {
   return (
-    <th className={`px-3 py-2.5 text-xs font-semibold text-zinc-400 uppercase tracking-wide whitespace-nowrap ${right ? 'text-right' : 'text-left'}`}>
+    <th className={`px-4 py-3 text-sm font-semibold text-zinc-400 uppercase tracking-wide whitespace-nowrap ${right ? 'text-right' : 'text-left'}`}>
       {children}
     </th>
   );
@@ -51,7 +51,7 @@ function Th({ children, right }) {
 
 function Td({ children, right, muted }) {
   return (
-    <td className={`px-3 py-2.5 text-sm whitespace-nowrap ${right ? 'text-right' : ''} ${muted ? 'text-zinc-500' : 'text-zinc-200'}`}>
+    <td className={`px-4 py-3 text-base whitespace-nowrap ${right ? 'text-right' : ''} ${muted ? 'text-zinc-500' : 'text-zinc-200'}`}>
       {children}
     </td>
   );
@@ -76,7 +76,7 @@ const PHASE_STYLES = {
 
 function PhaseBadge({ phase }) {
   const cls = PHASE_STYLES[phase] || PHASE_STYLES.unexpected;
-  return <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${cls}`}>{phase}</span>;
+  return <span className={`text-sm font-mono px-2 py-0.5 rounded ${cls}`}>{phase}</span>;
 }
 
 function PieWidget({ total, errors }) {
@@ -89,33 +89,33 @@ function PieWidget({ total, errors }) {
   const hasData = total > 0;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex items-center gap-6">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex items-center gap-8">
       <div className="flex-shrink-0">
         {hasData ? (
-          <PieChart width={140} height={140}>
-            <Pie data={data} cx={70} cy={70} innerRadius={42} outerRadius={62} dataKey="value" startAngle={90} endAngle={-270}>
+          <PieChart width={160} height={160}>
+            <Pie data={data} cx={80} cy={80} innerRadius={50} outerRadius={72} dataKey="value" startAngle={90} endAngle={-270}>
               {data.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
             </Pie>
             <Tooltip
-              contentStyle={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12 }}
+              contentStyle={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 14 }}
               labelStyle={{ color: '#a1a1aa' }}
             />
           </PieChart>
         ) : (
-          <div className="w-[140px] h-[140px] flex items-center justify-center text-zinc-600 text-sm">No data</div>
+          <div className="w-[160px] h-[160px] flex items-center justify-center text-zinc-600 text-base">No data</div>
         )}
       </div>
       <div>
-        <p className="text-3xl font-bold text-zinc-100">{total}</p>
-        <p className="text-xs text-zinc-500 mt-0.5 mb-3">Total requests</p>
-        <div className="space-y-1.5">
+        <p className="text-4xl font-bold text-zinc-100">{total}</p>
+        <p className="text-sm text-zinc-500 mt-1 mb-4">Total requests</p>
+        <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0" />
-            <span className="text-sm text-zinc-300">{successful} successful</span>
+            <div className="w-3 h-3 rounded-full bg-emerald-500 flex-shrink-0" />
+            <span className="text-base text-zinc-300">{successful} successful</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" />
-            <span className="text-sm text-zinc-300">{errors} errors</span>
+            <div className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0" />
+            <span className="text-base text-zinc-300">{errors} errors</span>
           </div>
         </div>
       </div>
@@ -155,7 +155,7 @@ function PeriodToggle({ period, onChange }) {
     <div className="flex gap-1">
       {['day', 'week', 'month'].map(p => (
         <button key={p} onClick={() => onChange(p)}
-          className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${period === p ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'}`}>
+          className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors ${period === p ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'}`}>
           {p === 'day' ? 'Today' : p === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
         </button>
       ))}
@@ -166,9 +166,9 @@ function PeriodToggle({ period, onChange }) {
 function SectionHeader({ title, count }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <h3 className="text-sm font-semibold text-zinc-100">{title}</h3>
+      <h3 className="text-base font-semibold text-zinc-100">{title}</h3>
       {count != null && (
-        <span className="text-xs font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded-full border border-zinc-700">{count}</span>
+        <span className="text-sm font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded-full border border-zinc-700">{count}</span>
       )}
     </div>
   );
@@ -197,7 +197,7 @@ function VideoBriefErrors({ period, onPeriodChange }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">Video Brief</h2>
+        <h2 className="text-base font-semibold text-zinc-300 uppercase tracking-wide">Video Brief</h2>
         <PeriodToggle period={period} onChange={handlePeriod} />
       </div>
 
@@ -212,8 +212,8 @@ function VideoBriefErrors({ period, onPeriodChange }) {
             {/* Rate Limit Events */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
               <div className="px-5 py-3 border-b border-zinc-800 flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-100">Rate Limit Events</span>
-                <span className="text-xs font-mono text-zinc-500">grouped by user</span>
+                <span className="text-base font-semibold text-zinc-100">Rate Limit Events</span>
+                <span className="text-sm font-mono text-zinc-500">grouped by user</span>
               </div>
               {data.rateLimitByUser.length === 0 ? (
                 <p className="px-5 py-8 text-center text-zinc-500 text-sm">No rate limit events in this period.</p>
@@ -315,7 +315,7 @@ function MarketBriefErrors({ period, onPeriodChange }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">Market Brief</h2>
+        <h2 className="text-base font-semibold text-zinc-300 uppercase tracking-wide">Market Brief</h2>
         <PeriodToggle period={period} onChange={handlePeriod} />
       </div>
 
@@ -330,8 +330,8 @@ function MarketBriefErrors({ period, onPeriodChange }) {
             {/* Channel Feed Errors */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
               <div className="px-5 py-3 border-b border-zinc-800 flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-100">Channel Feed Errors</span>
-                <span className="text-xs font-mono text-zinc-500">grouped by channel</span>
+                <span className="text-base font-semibold text-zinc-100">Channel Feed Errors</span>
+                <span className="text-sm font-mono text-zinc-500">grouped by channel</span>
               </div>
               {data.channelErrors.length === 0 ? (
                 <p className="px-5 py-8 text-center text-zinc-500 text-sm">No channel feed errors in this period.</p>
@@ -466,10 +466,10 @@ export default function AnalyticsPage({ onBack, onLogout }) {
     getAnalyticsTimeseries(period).then(setTs).catch(() => {});
   }, [period]);
 
-  const tabCls = (t) => `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+  const tabCls = (t) => `px-5 py-2.5 text-base font-medium rounded-lg transition-colors ${
     activeTab === t ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
   }`;
-  const subTabCls = (t) => `px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+  const subTabCls = (t) => `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
     errorsSubTab === t ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
   }`;
 
@@ -501,9 +501,9 @@ export default function AnalyticsPage({ onBack, onLogout }) {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="px-6 py-8">
         {/* Top-level tab bar */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-8">
           <button className={tabCls('usage')} onClick={() => setActiveTab('usage')}>Usage</button>
           <button className={tabCls('errors')} onClick={() => setActiveTab('errors')}>Errors</button>
         </div>
@@ -541,33 +541,33 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                 </div>
 
                 {/* Activity chart */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-                  <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-sm font-semibold text-zinc-100">Activity Over Time</h2>
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-base font-semibold text-zinc-100">Activity Over Time</h2>
                     <div className="flex gap-1">
                       {['today', 'week', 'month'].map(p => (
                         <button key={p} onClick={() => setPeriod(p)}
-                          className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${period === p ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'}`}>
+                          className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors ${period === p ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'}`}>
                           {p === 'today' ? 'Today' : p === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
                         </button>
                       ))}
                     </div>
                   </div>
                   {ts ? (
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={420}>
                       <LineChart data={mergeTimeseries(ts)} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                        <XAxis dataKey="t" tick={{ fill: '#71717a', fontSize: 11 }} tickLine={false} />
-                        <YAxis tick={{ fill: '#71717a', fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
-                        <Tooltip contentStyle={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12 }} labelStyle={{ color: '#a1a1aa' }} />
-                        <Legend wrapperStyle={{ fontSize: 12, color: '#a1a1aa' }} />
+                        <XAxis dataKey="t" tick={{ fill: '#71717a', fontSize: 13 }} tickLine={false} />
+                        <YAxis tick={{ fill: '#71717a', fontSize: 13 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                        <Tooltip contentStyle={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 14 }} labelStyle={{ color: '#a1a1aa' }} />
+                        <Legend wrapperStyle={{ fontSize: 14, color: '#a1a1aa' }} />
                         {SERIES.map(({ key, label, color }) => (
                           <Line key={key} type="monotone" dataKey={key} name={label} stroke={color} strokeWidth={2} dot={false} connectNulls />
                         ))}
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex items-center justify-center h-[300px]">
+                    <div className="flex items-center justify-center h-[420px]">
                       <div className="w-6 h-6 border-2 border-zinc-700 border-t-blue-500 rounded-full animate-spin" />
                     </div>
                   )}
@@ -575,9 +575,9 @@ export default function AnalyticsPage({ onBack, onLogout }) {
 
                 {/* Users by activity table */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                  <div className="px-5 py-4 border-b border-zinc-800 flex items-center gap-2">
-                    <h2 className="text-sm font-semibold text-zinc-100">Users by Activity</h2>
-                    <span className="text-xs text-zinc-500 font-mono">up to 25</span>
+                  <div className="px-6 py-5 border-b border-zinc-800 flex items-center gap-2">
+                    <h2 className="text-base font-semibold text-zinc-100">Users by Activity</h2>
+                    <span className="text-sm text-zinc-500 font-mono">up to 25</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -629,9 +629,9 @@ export default function AnalyticsPage({ onBack, onLogout }) {
 
                 {/* Action log */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
-                    <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wide">Action Log</h2>
-                    <span className="text-xs text-zinc-500 font-mono">last 50</span>
+                  <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800">
+                    <h2 className="text-base font-semibold text-zinc-200 uppercase tracking-wide">Action Log</h2>
+                    <span className="text-sm text-zinc-500 font-mono">last 50</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
