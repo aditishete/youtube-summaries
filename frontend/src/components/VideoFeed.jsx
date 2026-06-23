@@ -336,6 +336,28 @@ export default function VideoFeed({ videos, loading, selectedChannelId, channels
         )}
       </div>
 
+      {/* Mobile: back + support buttons */}
+      <div className="flex md:hidden items-center justify-between gap-2 mb-3">
+        <div>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500 text-zinc-100 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              ← Back
+            </button>
+          )}
+        </div>
+        <a
+          href="https://ko-fi.com/inbrief"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400/60 text-amber-300 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+        >
+          ☕ Support
+        </a>
+      </div>
+
       {/* Mobile: market tabs + video count */}
       {category === 'market' && onMarketChange && (
         <div className="flex md:hidden items-center gap-2 mb-3">
