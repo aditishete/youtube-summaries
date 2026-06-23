@@ -4,7 +4,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-const VALID_PAGES = ['landing', 'market_brief', 'video_in_brief'];
+const VALID_PAGES = ['landing', 'market_brief', 'video_in_brief', 'healthy_brief', 'market_brief_us', 'market_brief_india'];
 
 // POST /api/analytics/pageview — called by frontend on each page navigation
 router.post('/pageview', requireAuth, (req, res) => {
@@ -73,6 +73,9 @@ router.get('/timeseries', requireAdmin, (req, res) => {
     briefs_generated: bucket('user_summaries', 'created_at'),
     landing_views: bucketPage('landing'),
     market_brief_views: bucketPage('market_brief'),
+    market_brief_us_views: bucketPage('market_brief_us'),
+    market_brief_india_views: bucketPage('market_brief_india'),
+    healthy_brief_views: bucketPage('healthy_brief'),
     video_in_brief_views: bucketPage('video_in_brief'),
   });
 });
@@ -172,6 +175,10 @@ router.get('/', requireAdmin, (req, res) => {
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND date(viewed_at${toLocal}) = '${today}') AS market_today,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND viewed_at >= datetime('now', '-7 days')) AS market_week,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND viewed_at >= datetime('now', '-30 days')) AS market_month,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'healthy_brief') AS healthy_total,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'healthy_brief' AND date(viewed_at${toLocal}) = '${today}') AS healthy_today,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'healthy_brief' AND viewed_at >= datetime('now', '-7 days')) AS healthy_week,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'healthy_brief' AND viewed_at >= datetime('now', '-30 days')) AS healthy_month,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'video_in_brief') AS vib_total,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'video_in_brief' AND date(viewed_at${toLocal}) = '${today}') AS vib_today,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'video_in_brief' AND viewed_at >= datetime('now', '-7 days')) AS vib_week,
@@ -209,6 +216,9 @@ router.get('/', requireAdmin, (req, res) => {
     guest_visits: { today: guestVisitsToday, week: guestVisitsWeek, month: guestVisitsMonth },
     landing_views: pageViewCounts('landing'),
     market_brief_views: pageViewCounts('market_brief'),
+    market_brief_us_views: pageViewCounts('market_brief_us'),
+    market_brief_india_views: pageViewCounts('market_brief_india'),
+    healthy_brief_views: pageViewCounts('healthy_brief'),
     video_in_brief_views: pageViewCounts('video_in_brief'),
     users,
   });

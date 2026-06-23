@@ -148,8 +148,9 @@ export default function App() {
     if (authStatus === 'authenticated') {
       const pageMap = { landing: 'landing', dashboard: 'market_brief', healthy: 'healthy_brief', summarize: 'video_in_brief' };
       if (pageMap[appPage]) trackPageView(pageMap[appPage]);
+      if (appPage === 'dashboard') trackPageView(market === 'india' ? 'market_brief_india' : 'market_brief_us');
     }
-  }, [appPage, authStatus]);
+  }, [appPage, authStatus, market]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
@@ -253,6 +254,7 @@ export default function App() {
   const handleMarketChange = useCallback((m) => {
     setMarket(m);
     setSelectedChannelId(null);
+    trackPageView(m === 'india' ? 'market_brief_india' : 'market_brief_us');
   }, []);
 
   const handleChannelAdded = useCallback(async (url) => {
