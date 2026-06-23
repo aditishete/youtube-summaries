@@ -146,7 +146,7 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('appPage', appPage);
     if (authStatus === 'authenticated') {
-      const pageMap = { landing: 'landing', dashboard: 'market_brief', healthy: 'healthy_brief', summarize: 'video_in_brief' };
+      const pageMap = { landing: 'landing', healthy: 'healthy_brief', summarize: 'video_in_brief' };
       if (pageMap[appPage]) trackPageView(pageMap[appPage]);
       if (appPage === 'dashboard') trackPageView(market === 'india' ? 'market_brief_india' : 'market_brief_us');
     }

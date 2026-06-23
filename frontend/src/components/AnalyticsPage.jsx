@@ -414,8 +414,7 @@ function MarketBriefErrors({ period, onPeriodChange }) {
 
 const SERIES = [
   { key: 'market_brief_requests',    label: 'Market Brief Requests', color: '#818cf8' },
-  { key: 'market_brief_views',       label: 'Market Brief Visits',   color: '#60a5fa' },
-  { key: 'market_brief_us_views',    label: 'Market US Visits',      color: '#3b82f6' },
+  { key: 'market_brief_us_views',    label: 'Market US Visits',      color: '#60a5fa' },
   { key: 'market_brief_india_views', label: 'Market India Visits',   color: '#f97316' },
   { key: 'healthy_brief_views',      label: 'Health Brief Visits',   color: '#10b981' },
   { key: 'video_in_brief_views',     label: 'Video Brief Visits',    color: '#34d399' },
@@ -531,11 +530,10 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                 </div>
 
                 {/* Group cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4">
                   <GroupCard label="Logins"               color="amber"   today={data.logins_today}                       week={data.logins_week}                    month={data.logins_month} />
                   <GroupCard label="Guest Visits"         color="zinc"    today={data.guest_visits?.today}                 week={data.guest_visits?.week}              month={data.guest_visits?.month} />
                   <GroupCard label="Landing Visits"       color="blue"    today={data.landing_views?.today}                week={data.landing_views?.week}             month={data.landing_views?.month} />
-                  <GroupCard label="Market Brief (All)"   color="violet"  today={data.market_brief_views?.today}           week={data.market_brief_views?.week}        month={data.market_brief_views?.month} />
                   <GroupCard label="Market Brief 🇺🇸 US"  color="blue"    today={data.market_brief_us_views?.today}        week={data.market_brief_us_views?.week}     month={data.market_brief_us_views?.month} />
                   <GroupCard label="Market Brief 🇮🇳 India" color="amber" today={data.market_brief_india_views?.today}     week={data.market_brief_india_views?.week}  month={data.market_brief_india_views?.month} />
                   <GroupCard label="Health Brief Visits"  color="emerald" today={data.healthy_brief_views?.today}          week={data.healthy_brief_views?.week}       month={data.healthy_brief_views?.month} />

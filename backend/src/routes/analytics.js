@@ -57,11 +57,12 @@ router.get('/timeseries', requireAdmin, (req, res) => {
     );
   }
 
-  function bucketPage(page) {
+  function bucketPage(...pages) {
     const fn = bucketFn.replace(/%col%/g, 'viewed_at');
+    const placeholders = pages.map(() => '?').join(', ');
     return db._db.all(
-      `SELECT ${fn} as t, count(*) as n FROM user_page_views WHERE page = ? AND viewed_at >= ${since} GROUP BY t ORDER BY t`,
-      [page]
+      `SELECT ${fn} as t, count(*) as n FROM user_page_views WHERE page IN (${placeholders}) AND viewed_at >= ${since} GROUP BY t ORDER BY t`,
+      pages
     );
   }
 
@@ -72,8 +73,7 @@ router.get('/timeseries', requireAdmin, (req, res) => {
     logins: bucket('user_logins', 'logged_in_at'),
     briefs_generated: bucket('user_summaries', 'created_at'),
     landing_views: bucketPage('landing'),
-    market_brief_views: bucketPage('market_brief'),
-    market_brief_us_views: bucketPage('market_brief_us'),
+    market_brief_us_views: bucketPage('market_brief', 'market_brief_us'),
     market_brief_india_views: bucketPage('market_brief_india'),
     healthy_brief_views: bucketPage('healthy_brief'),
     video_in_brief_views: bucketPage('video_in_brief'),
@@ -142,18 +142,19 @@ router.get('/', requireAdmin, (req, res) => {
     "SELECT count(*) as c FROM user_logins WHERE user_id = ? AND logged_in_at >= datetime('now', '-30 days')"
   ).get(guestId).c;
 
-  // Aggregate per-page view counts
-  function pageViewCounts(page) {
+  // Aggregate per-page view counts — accepts one or more page names (folded with IN clause)
+  function pageViewCounts(...pages) {
+    const placeholders = pages.map(() => '?').join(', ');
     return {
       today: db.prepare(
-        `SELECT count(*) as c FROM user_page_views WHERE page = ? AND date(viewed_at${toLocal}) = ?`
-      ).get(page, today).c,
+        `SELECT count(*) as c FROM user_page_views WHERE page IN (${placeholders}) AND date(viewed_at${toLocal}) = ?`
+      ).get([...pages, today]).c,
       week: db.prepare(
-        "SELECT count(*) as c FROM user_page_views WHERE page = ? AND viewed_at >= datetime('now', '-7 days')"
-      ).get(page).c,
+        `SELECT count(*) as c FROM user_page_views WHERE page IN (${placeholders}) AND viewed_at >= datetime('now', '-7 days')`
+      ).get(pages).c,
       month: db.prepare(
-        "SELECT count(*) as c FROM user_page_views WHERE page = ? AND viewed_at >= datetime('now', '-30 days')"
-      ).get(page).c,
+        `SELECT count(*) as c FROM user_page_views WHERE page IN (${placeholders}) AND viewed_at >= datetime('now', '-30 days')`
+      ).get(pages).c,
     };
   }
 
@@ -171,10 +172,10 @@ router.get('/', requireAdmin, (req, res) => {
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'landing' AND date(viewed_at${toLocal}) = '${today}') AS landing_today,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'landing' AND viewed_at >= datetime('now', '-7 days')) AS landing_week,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'landing' AND viewed_at >= datetime('now', '-30 days')) AS landing_month,
-      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief') AS market_total,
-      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND date(viewed_at${toLocal}) = '${today}') AS market_today,
-      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND viewed_at >= datetime('now', '-7 days')) AS market_week,
-      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'market_brief' AND viewed_at >= datetime('now', '-30 days')) AS market_month,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page IN ('market_brief', 'market_brief_us')) AS market_total,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page IN ('market_brief', 'market_brief_us') AND date(viewed_at${toLocal}) = '${today}') AS market_today,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page IN ('market_brief', 'market_brief_us') AND viewed_at >= datetime('now', '-7 days')) AS market_week,
+      (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page IN ('market_brief', 'market_brief_us') AND viewed_at >= datetime('now', '-30 days')) AS market_month,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'healthy_brief') AS healthy_total,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'healthy_brief' AND date(viewed_at${toLocal}) = '${today}') AS healthy_today,
       (SELECT count(*) FROM user_page_views WHERE user_id = u.id AND page = 'healthy_brief' AND viewed_at >= datetime('now', '-7 days')) AS healthy_week,
@@ -215,8 +216,7 @@ router.get('/', requireAdmin, (req, res) => {
     logins_month: loginsMonth,
     guest_visits: { today: guestVisitsToday, week: guestVisitsWeek, month: guestVisitsMonth },
     landing_views: pageViewCounts('landing'),
-    market_brief_views: pageViewCounts('market_brief'),
-    market_brief_us_views: pageViewCounts('market_brief_us'),
+    market_brief_us_views: pageViewCounts('market_brief', 'market_brief_us'),
     market_brief_india_views: pageViewCounts('market_brief_india'),
     healthy_brief_views: pageViewCounts('healthy_brief'),
     video_in_brief_views: pageViewCounts('video_in_brief'),
