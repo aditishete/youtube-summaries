@@ -43,7 +43,7 @@ function GroupCard({ label, color, today, week, month }) {
 
 function Th({ children, right }) {
   return (
-    <th className={`px-4 py-3 text-sm font-semibold text-zinc-400 uppercase tracking-wide whitespace-nowrap ${right ? 'text-right' : 'text-left'}`}>
+    <th className={`px-5 py-4 text-base font-semibold text-zinc-300 uppercase tracking-wide whitespace-nowrap ${right ? 'text-right' : 'text-left'}`}>
       {children}
     </th>
   );
@@ -51,7 +51,7 @@ function Th({ children, right }) {
 
 function Td({ children, right, muted }) {
   return (
-    <td className={`px-4 py-3 text-base whitespace-nowrap ${right ? 'text-right' : ''} ${muted ? 'text-zinc-500' : 'text-zinc-200'}`}>
+    <td className={`px-5 py-4 text-lg whitespace-nowrap ${right ? 'text-right' : ''} ${muted ? 'text-zinc-400' : 'text-zinc-100'}`}>
       {children}
     </td>
   );
@@ -593,12 +593,12 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                         </tr>
                         <tr>
                           <td colSpan={2} />
-                          <td colSpan={3} className="px-3 pb-1.5 text-xs text-amber-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Logins ───────────</td>
-                          <td colSpan={3} className="px-3 pb-1.5 text-xs text-blue-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Landing Visits ───</td>
-                          <td colSpan={3} className="px-3 pb-1.5 text-xs text-violet-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Market Brief ─────</td>
-                          <td colSpan={3} className="px-3 pb-1.5 text-xs text-teal-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Health Brief ─────</td>
-                          <td colSpan={3} className="px-3 pb-1.5 text-xs text-emerald-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Brief Visits</td>
-                          <td colSpan={3} className="px-3 pb-1.5 text-xs text-zinc-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Briefs Requested</td>
+                          <td colSpan={3} className="px-5 pb-2 text-sm text-amber-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Logins ───────────</td>
+                          <td colSpan={3} className="px-5 pb-2 text-sm text-blue-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Landing Visits ───</td>
+                          <td colSpan={3} className="px-5 pb-2 text-sm text-violet-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Market Brief ─────</td>
+                          <td colSpan={3} className="px-5 pb-2 text-sm text-teal-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Health Brief ─────</td>
+                          <td colSpan={3} className="px-5 pb-2 text-sm text-emerald-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Brief Visits</td>
+                          <td colSpan={3} className="px-5 pb-2 text-sm text-zinc-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Briefs Requested</td>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-800">
