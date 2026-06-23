@@ -420,6 +420,7 @@ const SERIES = [
   { key: 'video_in_brief_views',     label: 'Video Brief Visits',    color: '#34d399' },
   { key: 'briefs_generated',         label: 'Briefs Generated',      color: '#a78bfa' },
   { key: 'logins',                   label: 'Logins',                color: '#fbbf24' },
+  { key: 'registrations',            label: 'New Registrations',     color: '#fb7185' },
   { key: 'landing_views',            label: 'Landing Visits',        color: '#f472b6' },
 ];
 
@@ -530,7 +531,8 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                 </div>
 
                 {/* Group cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8 gap-4">
+                  <GroupCard label="New Registrations"   color="violet"  today={data.registrations?.today}               week={data.registrations?.week}            month={data.registrations?.month} />
                   <GroupCard label="Logins"               color="amber"   today={data.logins_today}                       week={data.logins_week}                    month={data.logins_month} />
                   <GroupCard label="Guest Visits"         color="zinc"    today={data.guest_visits?.today}                 week={data.guest_visits?.week}              month={data.guest_visits?.month} />
                   <GroupCard label="Landing Visits"       color="blue"    today={data.landing_views?.today}                week={data.landing_views?.week}             month={data.landing_views?.month} />
@@ -589,16 +591,16 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                           <Th right>Today</Th><Th right>Week</Th><Th right>Month</Th>
                           <Th right>Today</Th><Th right>Week</Th><Th right>Month</Th>
                           <Th right>Today</Th><Th right>Week</Th><Th right>Month</Th>
-                          <Th right>Today</Th><Th right>Week</Th><Th right>Month</Th>
+                          <Th right>Joined</Th>
                         </tr>
                         <tr>
                           <td colSpan={2} />
-                          <td colSpan={3} className="px-6 pb-2 text-xl text-amber-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Logins ───────────</td>
-                          <td colSpan={3} className="px-6 pb-2 text-xl text-blue-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Landing Visits ───</td>
-                          <td colSpan={3} className="px-6 pb-2 text-xl text-violet-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Market Brief ─────</td>
-                          <td colSpan={3} className="px-6 pb-2 text-xl text-teal-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Health Brief ─────</td>
-                          <td colSpan={3} className="px-6 pb-2 text-xl text-emerald-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Brief Visits</td>
-                          <td colSpan={3} className="px-6 pb-2 text-xl text-zinc-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Briefs Requested</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-amber-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Logins ────────────────</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-blue-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Market Brief 🇺🇸 ──────</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-orange-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Market Brief 🇮🇳 ──────</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-violet-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Video Briefs Analyzed ─</td>
+                          <td colSpan={3} className="px-6 pb-2 text-xl text-teal-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Health Brief ──────────</td>
+                          <td className="px-6 pb-2 text-xl text-rose-400/70 font-medium uppercase tracking-wide whitespace-nowrap">── Registrations ─────────</td>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-800">
@@ -612,15 +614,15 @@ export default function AnalyticsPage({ onBack, onLogout }) {
                               </div>
                             </Td>
                             <Td right>{fmt(u.logins_today)}</Td><Td right muted>{fmt(u.logins_week)}</Td><Td right muted>{fmt(u.logins_month)}</Td>
-                            <Td right>{fmt(u.landing_today)}</Td><Td right muted>{fmt(u.landing_week)}</Td><Td right muted>{fmt(u.landing_month)}</Td>
-                            <Td right>{fmt(u.market_today)}</Td><Td right muted>{fmt(u.market_week)}</Td><Td right muted>{fmt(u.market_month)}</Td>
-                            <Td right>{fmt(u.healthy_today)}</Td><Td right muted>{fmt(u.healthy_week)}</Td><Td right muted>{fmt(u.healthy_month)}</Td>
-                            <Td right>{fmt(u.vib_today)}</Td><Td right muted>{fmt(u.vib_week)}</Td><Td right muted>{fmt(u.vib_month)}</Td>
+                            <Td right>{fmt(u.market_us_today)}</Td><Td right muted>{fmt(u.market_us_week)}</Td><Td right muted>{fmt(u.market_us_month)}</Td>
+                            <Td right>{fmt(u.market_india_today)}</Td><Td right muted>{fmt(u.market_india_week)}</Td><Td right muted>{fmt(u.market_india_month)}</Td>
                             <Td right>{fmt(u.briefs_today)}</Td><Td right muted>{fmt(u.briefs_week)}</Td><Td right muted>{fmt(u.briefs_month)}</Td>
+                            <Td right>{fmt(u.healthy_today)}</Td><Td right muted>{fmt(u.healthy_week)}</Td><Td right muted>{fmt(u.healthy_month)}</Td>
+                            <Td right muted>{fmtDate(u.created_at)}</Td>
                           </tr>
                         ))}
                         {data.users.length === 0 && (
-                          <tr><td colSpan={20} className="px-5 py-10 text-center text-zinc-500 text-sm">No user activity yet.</td></tr>
+                          <tr><td colSpan={18} className="px-5 py-10 text-center text-zinc-500 text-sm">No user activity yet.</td></tr>
                         )}
                       </tbody>
                     </table>
